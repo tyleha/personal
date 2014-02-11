@@ -8,7 +8,7 @@ import numpy as np
 
 # <codecell>
 
-single = [(0.0, 0),
+single = {2013: [(0.0, 0),
     (0.1, 8295),
     (0.15, 36250),
     (0.25, 87850),
@@ -16,9 +16,21 @@ single = [(0.0, 0),
     (0.33, 398350),
     (0.35, 400000),
     (0.396, 1000000000),
+    ],
+    2014: [(0.0, 0),
+    (0.1, 9075),
+    (0.15, 36900),
+    (0.25, 89350),
+    (0.28, 186350),
+    (0.33, 405100),
+    (0.35, 406750),
+    (0.396, 1000000000),
     ]
+    }
+standard_deduction = {2013:6100, 2014:6200}
+personal_ex = {2013:3900, 2014:3950}
 
-married = [(0.0, 0),
+married = {2013: [(0.0, 0),
     (0.1, 17850), 
     (0.15, 72500), 
     (0.25, 146400), 
@@ -26,10 +38,17 @@ married = [(0.0, 0),
     (0.33, 398350),
     (0.35, 400000),
     (0.396, 1000000000),
+    ],
+    2014:[(0.0, 0),
+    (0.1, 18150), 
+    (0.15, 73800), 
+    (0.25, 148850), 
+    (0.28, 226850), 
+    (0.33, 405100),
+    (0.35, 457600),
+    (0.396, 1000000000),
     ]
-
-standard_deduction = 6100
-personal_ex = 3900
+}
 
 def marginal_tax(income, cutoffs):
     taxes = 0
@@ -46,31 +65,43 @@ def marginal_tax(income, cutoffs):
 
     return taxes 
 
-def income_tax(income, joint=False, deduction=None):
+def income_tax(income, joint=False, deduction=None, year=2014):
     
     if deduction is None and joint is False:
-        deduction = standard_deduction + personal_ex
+        deduction = standard_deduction[year] + personal_ex[year]
     elif deduction is None and joint is True:
-        deduction = (standard_deduction + personal_ex)*2
+        deduction = (standard_deduction[year] + personal_ex[year])*2
     
     if joint:
-        tax = marginal_tax(income-deduction, married)
+        tax = marginal_tax(income-deduction, married[year])
     else:
-        tax = marginal_tax(income-deduction, single)
+        tax = marginal_tax(income-deduction, single[year])
     
     return tax
 
-def income_and_fica(income, joint=False, deduction=None):
-    tax = income_tax(income, joint, deduction)
+def income_and_fica(income, joint=False, deduction=None, year=2014):
+    tax = income_tax(income, joint, deduction, year)
     tax += 0.0765*income
     return tax
 
 # <codecell>
 
-amount = 50000
-print income_tax(50000, False)/50000
-print (income_tax(50000, False)+income_tax(50000, False))/100000
-print income_tax(100000, True)/100000
+inc = 82500+4000+16000
+print inc
+print 'total tax is', income_tax(inc, joint=True)
+print 'effective rate is', income_tax(inc, joint=True)/inc
+
+# <codecell>
+
+income_tax(16000, joint=False)
+
+# <codecell>
+
+efr = income_tax(inc, joint=True)/inc
+
+# <codecell>
+
+efr*3437.5-394
 
 # <codecell>
 
