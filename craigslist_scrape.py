@@ -23,7 +23,9 @@ class Post(object):
         return results.contents[0].replace('$','')
     
     def parse_post_metadata(self):
-        self.get_post_soup()
+        # Only do if soup doesn't already exist.
+        if self.postsoup is None:
+            self.get_post_soup()
         self.title = self.postsoup.title.text
         self.anon_email = self.get_anon_email()
         self.user_email = self.get_user_email()
@@ -35,10 +37,8 @@ class Post(object):
     def get_post_soup(self):
         """Load the soup for the page of the posting if not already loaded.
         """
-        # Only do if soup doesn't already exist.
-        if self.postsoup is None:
-            r = requests.get(self.url)
-            self.postsoup = BeautifulSoup(r.text) 
+        r = requests.get(self.url)
+        self.postsoup = BeautifulSoup(r.text) 
     
     def get_anon_email(self):
         """Grab the anonomized email address from the link provided on the posting page"""
@@ -129,6 +129,11 @@ soup = BeautifulSoup(r.text)
 
 # <codecell>
 
+url = "http://seattle.craigslist.org/search/fua/see?zoomToPosting=&catAbb=fua&query=bed+frame&minAsk=&maxAsk=&excats="
+re.search('.craigslist.org
+
+# <codecell>
+
 postings = soup('p')
 
 for bs4tag in postings[:10]:  
@@ -136,7 +141,7 @@ for bs4tag in postings[:10]:
     post = Post('http://%s.craigslist.org/'%ms.ccity + post_href, Post.find_price(bs4tag))
     post.parse_post_metadata()
     print post.title
-    print post.price
+    print '$', post.price
     print post.posted_time
     print post.updated_time
     print post.postid
@@ -144,28 +149,7 @@ for bs4tag in postings[:10]:
     print post.url
     print
 
-# <codecell>
-
-post.postsoup.find('section', id='postingbody').text.strip()
-
 # <headingcell level=1>
 
 # Scratch
-
-# <codecell>
-
-html_doc = """
-<html><head><title>The Dormouse's story</title></head>
-
-<p class="title"><b>The Dormouse's story</b></p>
-
-<p class="story">Once upon a time there were three little sisters; and their names were
-<a href="http://example.com/elsie" class="sister" id="link1">Elsie</a>,
-<a href="http://example.com/lacie" class="sister" id="link2">Lacie</a> and
-<a href="http://example.com/tillie" class="sister" id="link3">Tillie</a>;
-and they lived at the bottom of a well.</p>
-
-<p class="story">...</p>
-"""
-soup = BeautifulSoup(html_doc)
 
