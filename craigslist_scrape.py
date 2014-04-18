@@ -10,9 +10,8 @@ import re
 # <codecell>
 
 class Post(object):
-    def __init__(self, url, price=None):
+    def __init__(self, url):
         self.url = url
-        self.price = price
         self.postsoup = None
         
     @classmethod
@@ -33,6 +32,7 @@ class Post(object):
         self.updated_time = self.get_updated_time()
         self.postid = re.search('/(\d+).htm', self.url).groups()[0]
         self.text = self.postsoup.find('section', id='postingbody').text.strip()
+        self.price = self.get_price()
         
     def get_post_soup(self):
         """Load the soup for the page of the posting if not already loaded.
@@ -54,6 +54,14 @@ class Post(object):
         except:
             return None
         
+    def get_price(self):
+        """Get the price listed in the h2 page element (seems to always be present)"""
+        try:
+            post_header2 = self.postsoup.find_all('h2', class_='postingtitle')[0].text.strip()
+            return int(re.findall(' - \$(\d+) \(', post_header2)[0]) #looks for a number in the pattern [- $xxx (]
+        except:
+            return None
+    
     def get_posted_time(self):
         try:
             for pclass in self.postsoup.find_all('p', class_='postinginfo'):
@@ -80,7 +88,7 @@ def parse_anonemail(soup):
     return None
 
 def parse_useremail(soup):
-    re.search('([a-zA-Z0-9._%+-]+@[a-zA-z0-9.-]+\.[\w]{2,4})', soup.get_text())   
+    return re.search('([a-zA-Z0-9._%+-]+@[a-zA-z0-9.-]+\.[\w]{2,4})', soup.get_text())   
     
 def get_city(soup):
     """Using the breadcrumbs at the top of all craigslist pages, figure out what city you're in.
@@ -89,31 +97,53 @@ def get_city(soup):
 
 # <codecell>
 
-class Search(object):
-    def __init__(self, ccity, ccategory, query=None, csearchtype='A', chood=None, minask=None, maxask=None, haspic=False):
-        self.ccity = ccity
-        self.ccategory = ccategory
-        self.query = query
-        self.csearchtype = csearchtype #possibilities: A=all, T=title
-        self.chood = chood
-        self.minask = minask
-        self.maxask = maxask
-        self.haspic = haspic
-        
-        self.cminask = '' if minask is None else str(minask)
-        self.cmaxask = '' if maxask is None else str(maxask)
-        self.chaspic = '1' if haspic else '0'
-        
+class SearchURL(object):
+   def __init__(self, url=None, ccity=None, ccategory=None, query=None, csearchtype='A', 
+             chood=None, minask=None, maxask=None, haspic=False):
+    self.url = url
+    self.ccity = ccity
+    self.ccategory = ccategory
+    self.query = query
+    self.csearchtype = csearchtype #possibilities: A=all, T=title
+    self.chood = chood
+    self.minask = minask
+    self.maxask = maxask
+    self.haspic = haspic
+    
+    self.cminask = '' if minask is None else str(minask)
+    self.cmaxask = '' if maxask is None else str(maxask)
+    self.chaspic = '1' if haspic else '0'
+    
+    if url is None:
+        try:
+            self.url = self.format_search_url()
+        except:
+            pass
+            
     def format_search_url(self):
         #http://seattle.craigslist.org/search/sya/est?query=lenovo&zoomToPosting=&srchType=T&minAsk=10&maxAsk=10000&hasPic=1
         if self.query == None:
             return 'http://{0}.craigslist.org/{1}{2}'.format(self.ccity, postslash(self.chood), self.ccategory)
         return 'http://{0}.craigslist.org/search/{1}{7}?query={2}&srchType={3}&minAsk={4}&maxAsk={5}&hasPic={6}'.format(
                     self.ccity, self.ccategory, self.query, self.csearchtype, self.cminask, self.cmaxask, 
-                    self.chaspic, preslash(self.chood))
+                    self.chaspic, preslash(self.chood)) 
+
+class Search(object):
+    def __init__(self, url):
+        self.url = url
+        self.city = re.findall('[/.](\w+).craigslist.org', self.url)[0]
     
-    def find_postings(self):
-        pass
+    def search_postings(self):
+        posts = []
+        r = requests.get(self.url)
+        soup = BeautifulSoup(r.text)
+        post_paragraphs = soup('p')
+        for post_soup in post_paragraphs:
+            post_href = post_soup('a')[1].get('href')[1:]
+            post = Post('http://%s.craigslist.org/'%self.city + post_href)
+            posts.append(post)
+            
+        return posts
     
         
 postslash = lambda x: '' if x is None else x+'/'
@@ -121,35 +151,32 @@ preslash = lambda x: '' if x is None else '/'+x
 
 # <codecell>
 
-ms = Search('seattle', 'mcy', query='sport', chood='see', csearchtype='A', minask=1, maxask='10000')
-site = ms.format_search_url()
-print site
-r = requests.get(site)
-soup = BeautifulSoup(r.text)   
+bedsearch = Search("http://seattle.craigslist.org/search/fua/see?zoomToPosting=&catAbb=fua&query=bed+frame&minAsk=&maxAsk=&excats=")
+posts = bedsearch.search_postings()
 
 # <codecell>
 
-url = "http://seattle.craigslist.org/search/fua/see?zoomToPosting=&catAbb=fua&query=bed+frame&minAsk=&maxAsk=&excats="
-re.search('.craigslist.org
-
-# <codecell>
-
-postings = soup('p')
-
-for bs4tag in postings[:10]:  
-    post_href = bs4tag('a')[1].get('href')[1:]
-    post = Post('http://%s.craigslist.org/'%ms.ccity + post_href, Post.find_price(bs4tag))
+for post in posts[:5]:
+    print post.url
     post.parse_post_metadata()
     print post.title
-    print '$', post.price
-    print post.posted_time
-    print post.updated_time
-    print post.postid
+    print post.price
+    print post.anon_email
     print post.user_email
-    print post.url
-    print
 
 # <headingcell level=1>
 
 # Scratch
+
+# <codecell>
+
+post = Post('http://seattle.craigslist.org/see/mcy/4427694433.html')
+post.parse_post_metadata()
+
+# <codecell>
+
+post.postsoup.find_all('a')
+
+# <codecell>
+
 
