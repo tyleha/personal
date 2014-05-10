@@ -8,6 +8,7 @@
 import json
 import time
 import matplotlib.pyplot as plt
+import pandas as pd
 
 # <codecell>
 
@@ -105,6 +106,8 @@ from mpl_toolkits.basemap import Basemap
 import pandas as pd
 from shapely.geometry import Point, Polygon, MultiPoint, MultiPolygon
 from shapely.prepared import prep
+import matplotlib.cm as cm
+from matplotlib.collections import PatchCollection
 
 # <codecell>
 
@@ -147,20 +150,21 @@ out = m.readshapefile(
 # <codecell>
 
 # Plot all neighborhoods
-fig = plt.figure(figsize=(8,12))
 for nhood in m.seattle:
     plt.plot([xx[0] for xx in nhood], [xx[1] for xx in nhood], 'b')
+plt.plot(ld['latitudeE7'], ld['longitudeE7'])
+plt.axis('scaled')
 
 # <codecell>
 
-m.seattle_info[60]['L_HOOD']
+plt.plot(ld['latitudeE7'], ld['longitudeE7'])
 
 # <codecell>
 
 # set up a map dataframe
 df_map = pd.DataFrame({
     'poly': [Polygon(xy) for xy in m.seattle],
-    'name': })
+    'name': [nhood['L_HOOD'] for nhood in m.seattle_info]})
 df_map['area_m'] = df_map['poly'].map(lambda x: x.area)
 df_map['area_km'] = df_map['area_m'] / 100000
 
@@ -177,4 +181,84 @@ ldn_points = filter(wards_polygon.contains, plaque_points)
 
 # <codecell>
 
+ldn_points[0].xy
+
+# <codecell>
+
+%gist ldn_points[0]
+
+# <codecell>
+
+# Convenience functions for working with colour ramps and bars
+def colorbar_index(ncolors, cmap, labels=None, **kwargs):
+    """
+    This is a convenience function to stop you making off-by-one errors
+    Takes a standard colourmap, and discretises it,
+    then draws a color bar with correctly aligned labels
+    """
+    cmap = cmap_discretize(cmap, ncolors)
+    mappable = cm.ScalarMappable(cmap=cmap)
+    mappable.set_array([])
+    mappable.set_clim(-0.5, ncolors+0.5)
+    colorbar = plt.colorbar(mappable, **kwargs)
+    colorbar.set_ticks(np.linspace(0, ncolors, ncolors))
+    colorbar.set_ticklabels(range(ncolors))
+    if labels:
+        colorbar.set_ticklabels(labels)
+    return colorbar
+
+def cmap_discretize(cmap, N):
+    """
+    Return a discrete colormap from the continuous colormap cmap.
+
+        cmap: colormap instance, eg. cm.jet. 
+        N: number of colors.
+
+    Example
+        x = resize(arange(100), (5,100))
+        djet = cmap_discretize(cm.jet, 5)
+        imshow(x, cmap=djet)
+
+    """
+    if type(cmap) == str:
+        cmap = get_cmap(cmap)
+    colors_i = concatenate((linspace(0, 1., N), (0., 0., 0., 0.)))
+    colors_rgba = cmap(colors_i)
+    indices = linspace(0, 1., N + 1)
+    cdict = {}
+    for ki, key in enumerate(('red', 'green', 'blue')):
+        cdict[key] = [(indices[i], colors_rgba[i - 1, ki], colors_rgba[i, ki]) for i in xrange(N + 1)]
+    return matplotlib.colors.LinearSegmentedColormap(cmap.name + "_%d" % N, cdict, 1024)
+
+# <codecell>
+
+# draw ward patches from polygons
+df_map['patches'] = df_map['poly'].map(lambda x: PolygonPatch(
+    x,
+    fc='#555555',
+    ec='#787878', lw=.25, alpha=.9,
+    zorder=4))
+
+plt.clf()
+fig = plt.figure()
+ax = fig.add_subplot(111, axisbg='w', frame_on=False)
+
+# we don't need to pass points to m() because we calculated using map_points and shapefile polygons
+dev = m.scatter(
+    [geom.x for geom in ldn_points],
+    [geom.y for geom in ldn_points],
+    5, marker='o', lw=.25,
+    facecolor='#33ccff', edgecolor='w',
+    alpha=0.9, antialiased=True,
+    label='Blue Plaque Locations', zorder=3)
+# plot boroughs by adding the PatchCollection to the axes instance
+ax.add_collection(PatchCollection(df_map['patches'].values, match_original=True))
+# copyright and source data info
+smallprint = ax.text(
+    1.03, 0,
+    'Total points: %s\nContains Ordnance Survey data\n$\copyright$ Crown copyright and database right 2013\nPlaque data from http://openplaques.org' % len(ldn_points),
+    ha='right', va='bottom',
+    size=4,
+    color='#555555',
+    transform=ax.transAxes)
 
