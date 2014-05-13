@@ -3,60 +3,70 @@
 
 # <codecell>
 
-import csv
+import pandas as pd
+import numpy as np
+import json
 
 # <codecell>
 
-data = {}
-
-with open(r'C:\Users\Tyler\Desktop\rec_blank_counts_example.csv', 'r') as csvfile:
-    somereader = csv.reader(csvfile)
-    for i, row in enumerate(somereader):
-        #Ugh, skip first line (header)
-        if i == 0: continue
-
-        linct = int(row[0]); subj = row[1].lower(); task = row[2].upper()
-        
-        #If we haven't seen this subject yet, init variables
-        if subj not in data.keys():
-            data[subj] = {}
-            data[subj][task] = 0
-         
-        #But if this subject exists but we haven't seen this
-        #task yet, init variable
-        elif task not in data[subj].keys():
-            data[subj][task] = 0
-        
-        #Ready to do the actual math: add if 0
-        if linct == 0:
-            data[subj][task] += 1
+fn = r'C:\Users\thartley\Desktop\usagov_bitly_data2013-05-17-1368817803'
+records = [json.loads(line) for line in open(fn)]
 
 # <codecell>
 
-#Open up a csv file
-dest_filename = r'Subject_Report.csv'
-
-with open(dest_filename, 'wb') as subjectfile:
-    spamwriter = csv.writer(subjectfile, dialect='excel')
-    spamwriter.writerow(['Subject','Task','Number of Linecounts eq to Zero'])
-    
-    #Actually write stuff to csv
-    for subj, tasks in data.iteritems():
-        for task, numzero in tasks.iteritems():
-            spamwriter.writerow([subj, task, numzero])
+records[0]
 
 # <codecell>
 
-f = open('errors.txt', 'a')
+frame = pd.DataFrame(records)
 
 # <codecell>
 
-f.write('tyleha@gmail.com')
+frame['tz'][:10].plot(kind='barh', rot=0)
 
 # <codecell>
 
-f.close()
+tzinfo = frame['tz'].value_counts()
 
 # <codecell>
+
+tzinfo[:10].plot(kind='barh', rot=0)
+
+# <codecell>
+
+x = np.arange(1.3e6, 8.0e6, 0.2e6)
+y = np.arange(1.3e6, 8.0e6, 0.2e6)
+
+# <codecell>
+
+z1, z2 = np.meshgrid(x, y)
+
+# <codecell>
+
+refl = (z1-z2)**2/(z1+z2)**2
+
+# <codecell>
+
+plt.imshow(refl)
+
+# <codecell>
+
+fig = plt.figure()
+ax = fig.add_subplot(111)
+out = ax.hexbin(z1.ravel(), z2.ravel(), C=refl.ravel(), gridsize=20)
+cb = fig.colorbar(out)
+ax.set_title("Acoustic Impedance Reflection")
+ax.set_ylabel("Impedance A")
+ax.set_xlabel("Impedance B")
+fig.tight_layout()
+t = """Material z [kg/(m2s]
+Fat     1.30e6
+Water   1.50e6 
+Muscle  1.65e6
+Bone    7.80e6"""
+ax.text(x[-12], y[-8], t, color='white')
+
+# <codecell>
+
 
 
