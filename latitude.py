@@ -75,7 +75,7 @@ def distance_on_unit_sphere(lat1, long1, lat2, long2):
 
 # <codecell>
 
-fh = open(r'C:\Users\thartley\Documents\LocationHistory5_1_14.json')
+fh = open(r'C:\Users\Tyler\Documents\My Dropbox\DOCUMENTS\LocationHistory5_1_14.json')
 buf = fh.read()
 raw = json.loads(buf)
 fh.close()
@@ -108,14 +108,18 @@ from shapely.geometry import Point, Polygon, MultiPoint, MultiPolygon
 from shapely.prepared import prep
 import matplotlib.cm as cm
 from matplotlib.collections import PatchCollection
+from descartes import PolygonPatch
+
+import helpers
 
 # <codecell>
 
 #shp = fiona.open(r'C:\Users\thartley\Documents\Seattle_20City_20Limits\WGS84\Seattle City Limits')
 #r'C:\Users\thartley\Downloads\london\london_wards'
-shapefile = r'C:\Users\thartley\Downloads\Neighborhoods\WGS84\Neighborhoods'
+#shapefile = r'C:\Users\thartley\Downloads\Neighborhoods\WGS84\Neighborhoods'
+shapefilename = helpers.user_prefix() + r'data\Shorelines\WGS84\Shorelines'
 
-shp = fiona.open(shapefile+'.shp')
+shp = fiona.open(shapefilename+'.shp')
 bds = shp.bounds
 shp.close()
 extra = 0.01
@@ -125,6 +129,26 @@ coords = list(chain(ll, ur))
 w, h = coords[2] - coords[0], coords[3] - coords[1]
 
 # <codecell>
+
+m2 = Basemap(
+    projection='tmerc',
+    lon_0=-122.3,
+    lat_0=47.6,
+    #lon_0=-2.,
+    #lat_0=49.,
+    ellps = 'WGS84',
+    llcrnrlon=coords[0] - extra * w,
+    llcrnrlat=coords[1] - extra + 0.01 * h,
+    urcrnrlon=coords[2] + extra * w,
+    urcrnrlat=coords[3] + extra + 0.01 * h,
+    lat_ts=0,
+    resolution='i',
+    suppress_ticks=True)
+out = m2.readshapefile(
+    shapefilename,
+    'water',
+    color='none',
+    zorder=2)
 
 m = Basemap(
     projection='tmerc',
@@ -141,8 +165,7 @@ m = Basemap(
     resolution='i',
     suppress_ticks=True)
 out = m.readshapefile(
-    #r'C:\Users\thartley\Documents\Seattle_20City_20Limits\WGS84\Seattle City Limits',
-    shapefile,
+    helpers.user_prefix() + r'data\Shorelines\WGS84\Shorelines',
     'seattle',
     color='none',
     zorder=2)
@@ -157,16 +180,13 @@ plt.axis('scaled')
 
 # <codecell>
 
-plt.plot(ld['latitudeE7'], ld['longitudeE7'])
-
-# <codecell>
-
 # set up a map dataframe
 df_map = pd.DataFrame({
-    'poly': [Polygon(xy) for xy in m.seattle],
-    'name': [nhood['L_HOOD'] for nhood in m.seattle_info]})
+    'poly': [Polygon(xy) for xy in m.seattle],#+[Polygon(yy) for yy in m2.water],
+    'name': [nhood['FEATURE'] for nhood in m.seattle_info]})
 df_map['area_m'] = df_map['poly'].map(lambda x: x.area)
 df_map['area_km'] = df_map['area_m'] / 100000
+#df_map['poly'].append(Polygon(m2.water[0]))
 
 # <codecell>
 
@@ -178,14 +198,6 @@ plaque_points = MultiPoint(list(map_points.values))
 wards_polygon = prep(MultiPolygon(list(df_map['poly'].values)))
 # calculate points that fall within the London boundary
 ldn_points = filter(wards_polygon.contains, plaque_points)
-
-# <codecell>
-
-ldn_points[0].xy
-
-# <codecell>
-
-%gist ldn_points[0]
 
 # <codecell>
 
@@ -239,7 +251,7 @@ df_map['patches'] = df_map['poly'].map(lambda x: PolygonPatch(
     ec='#787878', lw=.25, alpha=.9,
     zorder=4))
 
-plt.clf()
+#plt.clf()
 fig = plt.figure()
 ax = fig.add_subplot(111, axisbg='w', frame_on=False)
 
@@ -256,9 +268,68 @@ ax.add_collection(PatchCollection(df_map['patches'].values, match_original=True)
 # copyright and source data info
 smallprint = ax.text(
     1.03, 0,
-    'Total points: %s\nContains Ordnance Survey data\n$\copyright$ Crown copyright and database right 2013\nPlaque data from http://openplaques.org' % len(ldn_points),
+    'Text',
     ha='right', va='bottom',
     size=4,
     color='#555555',
     transform=ax.transAxes)
+# Draw a map scale
+m.drawmapscale(
+    coords[0] + 0.08, coords[1] + 0.015,
+    coords[0], coords[1],
+    10.,
+    barstyle='fancy', labelstyle='simple',
+    fillcolor1='w', fillcolor2='#555555',
+    fontcolor='#555555',
+    zorder=5)
+plt.title("Tyler's Location")
+plt.tight_layout()
+# this will set the image width to 722px at 100dpi
+fig.set_size_inches(72.2, 52.5)
+plt.savefig(helpers.user_prefix()+'data\london_plaques.png', dpi=100, alpha=True)
+plt.show()
+
+# <codecell>
+
+fig.set_size_inches(25, 10)
+plt.savefig(helpers.user_prefix()+'data\london_plaques.png', dpi=100, alpha=True)
+plt.show()
+
+# <headingcell level=1>
+
+# Scratch
+
+# <codecell>
+
+m = Basemap(
+    projection='tmerc',
+    lon_0=-122.3,
+    lat_0=47.6,
+    #lon_0=-2.,
+    #lat_0=49.,
+    ellps = 'WGS84',
+    llcrnrlon=coords[0] - extra * w,
+    llcrnrlat=coords[1] - extra + 0.01 * h,
+    urcrnrlon=coords[2] + extra * w,
+    urcrnrlat=coords[3] + extra + 0.01 * h,
+    lat_ts=0,
+    resolution='i',
+    suppress_ticks=True)
+out = m.readshapefile(
+    r'C:\Users\Tyler\data\Shorelines\WGS84\Shorelines',
+    
+    'seattle',
+    color='none',
+    zorder=2)
+
+# <codecell>
+
+# Plot all neighborhoods
+for nhood in m.seattle:
+    plt.plot([xx[0] for xx in nhood], [xx[1] for xx in nhood], 'b')
+plt.plot(ld['latitudeE7'], ld['longitudeE7'])
+plt.axis('scaled')
+
+# <codecell>
+
 
