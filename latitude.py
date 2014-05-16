@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 # <nbformat>3.0</nbformat>
 
+# <headingcell level=1>
+
+# More manual version
+
 # <codecell>
 
 %load_ext grasp
@@ -75,7 +79,10 @@ def distance_on_unit_sphere(lat1, long1, lat2, long2):
 
 # <codecell>
 
-fh = open(r'C:\Users\Tyler\Documents\My Dropbox\DOCUMENTS\LocationHistory5_1_14.json')
+try:
+    fh = open(r'C:\Users\Tyler\Documents\My Dropbox\DOCUMENTS\LocationHistory5_1_14.json')
+except:
+    fh = open(r'C:\Users\thartley\Downloads\LocationHistory_5_16_14.json')
 buf = fh.read()
 raw = json.loads(buf)
 fh.close()
@@ -100,6 +107,10 @@ plt.plot([point.lon for point in points], [point.lat for point in points], 'b.-'
 
 # <codecell>
 
+%load_ext grasp
+
+import matplotlib.pyplot as plt
+import numpy as np
 import fiona
 from itertools import chain
 from mpl_toolkits.basemap import Basemap
@@ -109,15 +120,30 @@ from shapely.prepared import prep
 import matplotlib.cm as cm
 from matplotlib.collections import PatchCollection
 from descartes import PolygonPatch
+import json
 
 import helpers
 
 # <codecell>
 
+try:
+    fh = open(r'C:\Users\Tyler\Documents\My Dropbox\DOCUMENTS\LocationHistory5_1_14.json')
+except:
+    fh = open(r'C:\Users\thartley\Downloads\LocationHistory_5_16_14.json')
+buf = fh.read()
+raw = json.loads(buf)
+fh.close()
+
+ld = pd.DataFrame(raw['locations'])
+ld['latitudeE7'] = ld['latitudeE7']/float(1e7)
+ld['longitudeE7'] = ld['longitudeE7']/float(1e7)
+
+# <codecell>
+
 #shp = fiona.open(r'C:\Users\thartley\Documents\Seattle_20City_20Limits\WGS84\Seattle City Limits')
 #r'C:\Users\thartley\Downloads\london\london_wards'
-#shapefile = r'C:\Users\thartley\Downloads\Neighborhoods\WGS84\Neighborhoods'
-shapefilename = helpers.user_prefix() + r'data\Shorelines\WGS84\Shorelines'
+shapefilename = helpers.user_prefix() + r'data\Neighborhoods\WGS84\Neighborhoods'
+#shapefilename = helpers.user_prefix() + r'data\Shorelines\WGS84\Shorelines'
 
 shp = fiona.open(shapefilename+'.shp')
 bds = shp.bounds
@@ -129,26 +155,6 @@ coords = list(chain(ll, ur))
 w, h = coords[2] - coords[0], coords[3] - coords[1]
 
 # <codecell>
-
-m2 = Basemap(
-    projection='tmerc',
-    lon_0=-122.3,
-    lat_0=47.6,
-    #lon_0=-2.,
-    #lat_0=49.,
-    ellps = 'WGS84',
-    llcrnrlon=coords[0] - extra * w,
-    llcrnrlat=coords[1] - extra + 0.01 * h,
-    urcrnrlon=coords[2] + extra * w,
-    urcrnrlat=coords[3] + extra + 0.01 * h,
-    lat_ts=0,
-    resolution='i',
-    suppress_ticks=True)
-out = m2.readshapefile(
-    shapefilename,
-    'water',
-    color='none',
-    zorder=2)
 
 m = Basemap(
     projection='tmerc',
@@ -165,8 +171,28 @@ m = Basemap(
     resolution='i',
     suppress_ticks=True)
 out = m.readshapefile(
-    helpers.user_prefix() + r'data\Shorelines\WGS84\Shorelines',
+    shapefilename,
     'seattle',
+    color='none',
+    zorder=2)
+
+m2 = Basemap(
+    projection='tmerc',
+    lon_0=-122.3,
+    lat_0=47.6,
+    #lon_0=-2.,
+    #lat_0=49.,
+    ellps = 'WGS84',
+    llcrnrlon=coords[0] - extra * w,
+    llcrnrlat=coords[1] - extra + 0.01 * h,
+    urcrnrlon=coords[2] + extra * w,
+    urcrnrlat=coords[3] + extra + 0.01 * h,
+    lat_ts=0,
+    resolution='i',
+    suppress_ticks=True)
+out = m2.readshapefile(
+    helpers.user_prefix() + r'data\Shorelines\WGS84\Shorelines',
+    'water',
     color='none',
     zorder=2)
 
@@ -175,7 +201,7 @@ out = m.readshapefile(
 # Plot all neighborhoods
 for nhood in m.seattle:
     plt.plot([xx[0] for xx in nhood], [xx[1] for xx in nhood], 'b')
-plt.plot(ld['latitudeE7'], ld['longitudeE7'])
+#plt.plot(ld['latitudeE7'], ld['longitudeE7'])
 plt.axis('scaled')
 
 # <codecell>
@@ -183,7 +209,7 @@ plt.axis('scaled')
 # set up a map dataframe
 df_map = pd.DataFrame({
     'poly': [Polygon(xy) for xy in m.seattle],#+[Polygon(yy) for yy in m2.water],
-    'name': [nhood['FEATURE'] for nhood in m.seattle_info]})
+    'name': [nhood['L_HOOD'] for nhood in m.seattle_info]})
 df_map['area_m'] = df_map['poly'].map(lambda x: x.area)
 df_map['area_km'] = df_map['area_m'] / 100000
 #df_map['poly'].append(Polygon(m2.water[0]))
@@ -285,13 +311,13 @@ m.drawmapscale(
 plt.title("Tyler's Location")
 plt.tight_layout()
 # this will set the image width to 722px at 100dpi
-fig.set_size_inches(72.2, 52.5)
+fig.set_size_inches(52.5, 72.2)
 plt.savefig(helpers.user_prefix()+'data\london_plaques.png', dpi=100, alpha=True)
 plt.show()
 
 # <codecell>
 
-fig.set_size_inches(25, 10)
+#fig.set_size_inches(10, 25)
 plt.savefig(helpers.user_prefix()+'data\london_plaques.png', dpi=100, alpha=True)
 plt.show()
 
