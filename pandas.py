@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 # <nbformat>3.0</nbformat>
 
+# <headingcell level=1>
+
+# Bitly Data
+
 # <codecell>
 
 import pandas as pd
@@ -9,9 +13,6 @@ import matplotlib.pyplot as plt
 import json
 
 import helpers
-
-# <codecell>
-
 
 # <codecell>
 
@@ -58,6 +59,12 @@ print res
 
 # <codecell>
 
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+# <codecell>
+
 years = range(1880, 2014)
 bits = list()
 folder = r'C:\Users\thartley\Downloads\names'
@@ -74,11 +81,66 @@ names = pd.concat(bits, ignore_index=True)
 
 # <codecell>
 
-total_births = names.pivot_table(values='births', columns=['sex'], index=['year'], aggfunc=np.sum)
+total_births = names.pivot_table(values='births', columns='sex', index=['year', 'name'], aggfunc=np.sum)
 
 # <codecell>
 
-total_births.plot()
+
+# <codecell>
+
+def sort_groups_by(group, keyword):
+    return group.sort_index(by=keyword, ascending=False)
+
+group = names.groupby(['year', 'sex']).apply(sort_groups_by, keyword='births')
+boys = group[group.sex == 'M']
+girls = group[group.sex == 'F']
+
+
+# <codecell>
+
+# Let's figure out the set of names that have ever held the #1 position
+most_popular_boys = boys.groupby('year').first()
+number_one_boys_names = set(most_popular_boys.name)
+
+most_popular_girls = girls.groupby('year').first()
+number_one_girls_names = set(most_popular_girls.name)
+
+# <codecell>
+
+_boys = boys.pivot_table(values='births', columns='name', index='year', aggfunc=np.sum)
+best_boys = _boys[list(number_one_boys_names)]
+
+# <codecell>
+
+best_boys.plot()
+
+# <codecell>
+
+#Next steps - normalize births to total births that year (example in oriley)
+
+# <headingcell level=3>
+
+# Scratch
+
+# <codecell>
+
+df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
+   ...:                        'foo', 'bar', 'foo', 'foo'],
+   ...:                 'B' : ['one', 'one', 'two', 'three',
+   ...:                        'two', 'two', 'one', 'three'],
+   ...:                 'C' : 22, 'D' : 33})
+
+# <codecell>
+
+foo = df.groupby('A')
+
+# <codecell>
+
+df2 = pd.DataFrame({'X' : ['B', 'B', 'A', 'A'], 'Y' : [1, 2, 3, 4]})
+
+# <codecell>
+
+df2.groupby(['X']).count()
 
 # <codecell>
 
