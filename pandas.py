@@ -81,10 +81,12 @@ names = pd.concat(bits, ignore_index=True)
 
 # <codecell>
 
-total_births = names.pivot_table(values='births', columns='sex', index=['year', 'name'], aggfunc=np.sum)
+def add_prop(group):
+    births = group.births.astype(float)
+    group['prop'] = births/births.sum()
+    return group
 
-# <codecell>
-
+names = names.groupby(['year', 'sex']).apply(add_prop)
 
 # <codecell>
 
@@ -107,16 +109,17 @@ number_one_girls_names = set(most_popular_girls.name)
 
 # <codecell>
 
-_boys = boys.pivot_table(values='births', columns='name', index='year', aggfunc=np.sum)
+_boys = boys.pivot_table(values='prop', columns='name', index='year', aggfunc=np.sum)
 best_boys = _boys[list(number_one_boys_names)]
+ax = best_boys.plot()
+ax.set_ylabel('Fraction of total names')
 
 # <codecell>
 
-best_boys.plot()
-
-# <codecell>
-
-#Next steps - normalize births to total births that year (example in oriley)
+_girls = girls.pivot_table(values='prop', columns='name', index='year', aggfunc=np.sum)
+best_girls = _girls[sorted(list(number_one_girls_names))]
+ax = best_girls.plot()
+ax.set_ylabel('Fraction of total names')
 
 # <headingcell level=3>
 
