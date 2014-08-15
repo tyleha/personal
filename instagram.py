@@ -8,8 +8,100 @@ import numpy as np
 import matplotlib.pyplot as plt
 import json 
 from IPython.core.display import HTML
+import re
+import sys
+from __future__ import print_function
 
 import helpers
+
+# <codecell>
+
+def paginate_tag_search(api, tag_search, max_results=40):
+    results = []
+    
+    tag_recent_media, next = api.tag_recent_media(tag_name=tag_search[0].name)
+    results += tag_recent_media    
+    
+    while len(results) < max_results:
+        recs, next = api.tag_recent_media(tag_name=tag_search[0].name, with_next_url=next)
+        results += recs  
+        
+    return results
+
+
+def match_caption(media, pattern):
+    """
+    :media: an instagram Media object
+    :pattern: a list of string patterns or a single string pattern
+    
+    :returns: bool
+    """
+    if media.caption is None:
+        return False
+    
+    if (isinstance(pattern, list) or isinstance(pattern, tuple)):
+        for pat in pattern:
+            
+            if re.search(pat, media.caption.text.lower()):
+                return True
+    else:
+        if re.search(pattern, media.caption.text.lower()):
+            return True
+    return False
+
+
+def has_tag(media, tag):
+    """
+    :media: an instagram Media object
+    :tag: a list of tags as stings or a single string tag
+    
+    :returns: bool
+    """
+    if (isinstance(tag, list) or isinstance(tag, tuple)):
+        for t in tag:
+            if t in [tag.name for tag in media.tags]:
+                return True
+    else:
+        if tag in [tag.name for tag in media.tags]:
+            return True
+        
+    return False
+
+
+def search_advanced(api, tag_primary, next=None, caption=None, tag=None, count=20, max_iters=20):
+    if (caption is not None and tag is not None):
+        raise ValueError, 'Perform either a caption or tag search'
+        
+    results = []
+    iters = 0
+    
+    tag_search, next_tag = api.tag_search(q=tag_primary)
+    tag_recent_media, next = api.tag_recent_media(tag_name=tag_search[0].name, with_next_url=next)
+    iters += 1
+    
+    if caption is not None:
+        for media in tag_recent_media:
+            if match_caption(media, caption):
+                results.append(media)
+    if tag is not None:
+        for media in tag_recent_media:
+            if has_tag(media, tag):
+                results.append(media) 
+                
+    while (len(results) < count and iters < max_iters):
+        tag_recent_media, next = api.tag_recent_media(tag_name=tag_search[0].name, with_next_url=next)
+        if caption is not None:
+            for media in tag_recent_media:
+                if match_caption(media, caption):
+                    results.append(media)
+        if tag is not None:
+            for media in tag_recent_media:
+                if has_tag(media, tag):
+                    results.append(media) 
+        iters += 1
+        sys.stdout.write('\rPage %s - %s results found'%(iters, len(results)))
+        sys.stdout.flush()
+    return results, next
 
 # <codecell>
 
@@ -26,46 +118,30 @@ html_small = '<img src=%s width="200" />'
 
 # <codecell>
 
-tag_search, next_tag = api.tag_search(q='nose', count=40)
-tag_recent_media, next = api.tag_recent_media(tag_name=tag_search[0].name)
-print 'found %s results'%len(tag_recent_media)
-
-# <codecell>
-
-cap, next = api.tag_recent_media(tag_name=tag_search[0].name, with_next_url=next)
+results, next = search_advanced(api, '', caption=['twin', 'triplet', 'gemelo'], max_iters=200, next=next)
 
 # <codecell>
 
 html = ''
-for media in tag_recent_media:
+for media in results:
     html += html_small%media.images['standard_resolution'].url
-    html += "<li>Caption: %s</li>"%media.caption
-HTML(html)
+    try:
+        html += "<li>Caption: %s</li>"%media.caption.text
+        html += "iconosquare.com/%s</br>"%media.user.username
+    except:
+        pass
+#HTML(html)
+
+# <headingcell level=1>
+
+# Scratchy
 
 # <codecell>
 
-html = ''
-for media in cap[1:]: #first element is same as last of prev???
-    html += html_small%media.images['standard_resolution'].url
-    html += "<li>Caption: %s</li>"%media.caption
-HTML(html)
 
 # <codecell>
 
-def paginate_tag_search(api, tag_search, max_results=40):
-    results = []
-    
-    tag_recent_media, next = api.tag_recent_media(tag_name=tag_search[0].name)
-    results += tag_recent_media    
-    
-    while len(results) < max_results:
-        recs, next = api.tag_recent_media(tag_name=tag_search[0].name, with_next_url=next)
-        results += recs  
-        
-    return results
-
-def search_two_tags(api, tag1, tag2, max_results):
-    pass
+type(media.caption.text)
 
 # <codecell>
 
@@ -117,6 +193,10 @@ xx
 # <codecell>
 
 popular_media[2].images['standard_resolution'].url
+
+# <codecell>
+
+print api.x_ratelimit
 
 # <codecell>
 
