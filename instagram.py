@@ -52,10 +52,29 @@ HTML(html)
 
 # <codecell>
 
-cap
+def paginate_tag_search(api, tag_search, max_results=40):
+    results = []
+    
+    tag_recent_media, next = api.tag_recent_media(tag_name=tag_search[0].name)
+    results += tag_recent_media    
+    
+    while len(results) < max_results:
+        recs, next = api.tag_recent_media(tag_name=tag_search[0].name, with_next_url=next)
+        results += recs  
+        
+    return results
+
+def search_two_tags(api, tag1, tag2, max_results):
+    pass
 
 # <codecell>
 
+res = paginate_tag_search(api, tag_search, 60)
+html = ''
+for media in res:
+    html += html_small%media.images['standard_resolution'].url
+    html += "<li>Caption: %s</li>"%media.caption
+HTML(html)
 
 # <codecell>
 
