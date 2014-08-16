@@ -76,7 +76,10 @@ def search_advanced(api, tag_primary, next=None, caption=None, tag=None, count=2
     iters = 0
     
     tag_search, next_tag = api.tag_search(q=tag_primary)
-    tag_recent_media, next = api.tag_recent_media(tag_name=tag_search[0].name, with_next_url=next)
+    if next is not None:
+        tag_recent_media, next = api.tag_recent_media(tag_name=tag_search[0].name, with_next_url=next)
+    else:
+        tag_recent_media, next = api.tag_recent_media(tag_name=tag_search[0].name)
     iters += 1
     
     if caption is not None:
@@ -101,6 +104,8 @@ def search_advanced(api, tag_primary, next=None, caption=None, tag=None, count=2
         iters += 1
         sys.stdout.write('\rPage %s - %s results found'%(iters, len(results)))
         sys.stdout.flush()
+        
+    print '%s calls remaining'%api.x_ratelimit_remaining
     return results, next
 
 # <codecell>
@@ -115,10 +120,12 @@ api = ig.client.InstagramAPI(client_id=keys['INSTAGRAM_CLIENT_ID'],
 
 html_big = '<img src=%s width="600" />'
 html_small = '<img src=%s width="200" />'
+next_url=None
 
 # <codecell>
 
-results, next = search_advanced(api, '', caption=['twin', 'triplet', 'gemelo'], max_iters=200, next=next)
+
+results, next_url= search_advanced(api, tag_primary='', caption=['twin'], count=50, max_iters=500, next=next_url)
 
 # <codecell>
 
@@ -127,7 +134,8 @@ for media in results:
     html += html_small%media.images['standard_resolution'].url
     try:
         html += "<li>Caption: %s</li>"%media.caption.text
-        html += "iconosquare.com/%s</br>"%media.user.username
+        html += '''<li>Media: <a href="%s">Media</a></li>'''%media.link
+        html += '''<a href="http://www.iconosquare.com/%s">%s</a></br>'''%(media.user.username, media.user.username)
     except:
         pass
 #HTML(html)
