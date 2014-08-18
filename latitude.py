@@ -181,9 +181,11 @@ buf = fh.read()
 raw = json.loads(buf)
 fh.close()
 
-ld = pd.DataFrame(raw['locations'])
-ld['latitudeE7'] = ld['latitudeE7']/float(1e7)
-ld['longitudeE7'] = ld['longitudeE7']/float(1e7)
+ld_full = pd.DataFrame(raw['locations'])
+ld_full['latitudeE7'] = ld_full['latitudeE7']/float(1e7)
+ld_full['longitudeE7'] = ld_full['longitudeE7']/float(1e7)
+ld_full['timestampMs'] = ld_full['timestampMs'].map(lambda x: float(x))
+ld = ld_full[ld_full.timestampMs > 1374303600.0*1000] #time since Jul. 20, 2013 when data reporting increased
 
 # <headingcell level=4>
 
@@ -284,7 +286,7 @@ df_map['patches'] = df_map['poly'].map(lambda x: PolygonPatch(
     x, fc='#555555', ec='#787878', lw=.8, alpha=.9, zorder=0))
 
 plt.clf()
-figwidth = 40
+figwidth = 14
 fig = plt.figure(figsize=(figwidth, figwidth*h/w))
 ax = fig.add_subplot(111, axisbg='w', frame_on=False)
 
@@ -323,11 +325,11 @@ m.drawmapscale(
     fontcolor='#555555',
     zorder=5)
 
-plt.title("Latitude Location History - All Time")
+plt.title("Latitude Location History - Since 7/20/13")
 #plt.tight_layout()
 # this will set the image width to 722px at 100dpi
 #fig.set_size_inches(7., 10.5)
-#plt.savefig('data/location_history_all.png', dpi=300, alpha=True)
+plt.savefig('data/location_history_7_20_13.png', dpi=300, frameon=False, transparent=True)
 plt.show()
 
 # <headingcell level=1>
@@ -341,6 +343,41 @@ for nhood in m.seattle:
     plt.plot([xx[0] for xx in nhood], [xx[1] for xx in nhood], 'b')
 plt.plot(ld['latitudeE7'], ld['longitudeE7'])
 plt.axis('scaled')
+
+# <codecell>
+
+import datetime
+
+# <codecell>
+
+xx = datetime.datetime.fromtimestamp(1400267377956/1000.)
+xx.date()
+
+# <codecell>
+
+dates = ld.timestampMs.map(lambda x: datetime.datetime.fromtimestamp(float(x)/1000.).date() )
+
+# <codecell>
+
+
+# <codecell>
+
+res = dates[dates.map(lambda x: x > datetime.date(2013, 7, 10) and x < datetime.date(2013, 8, 10))].value_counts()
+#criterion = res.map(lambda x: x > datetime.date(2013, 7, 10))
+
+# <codecell>
+
+fig = res.plot(figsize=(20, 12))
+
+# <codecell>
+
+xx = datetime.datetime(2013,7,20,0,0,0).strftime("%s")
+xx
+
+# <codecell>
+
+import time
+time.mktime(xx.timetuple())
 
 # <codecell>
 
