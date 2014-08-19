@@ -21,6 +21,7 @@ import matplotlib.cm as cm
 from matplotlib.collections import PatchCollection
 from descartes import PolygonPatch
 import json
+import datetime
 
 import helpers
 
@@ -105,7 +106,7 @@ def distance_on_unit_sphere(lat1, long1, lat2, long2):
 try:
     fh = open(r'C:\Users\Tyler\Documents\My Dropbox\LocationHistory_8_18_14.json')
 except:
-    fh = open(r'C:\Users\thartley\Downloads\LocationHistory_5_16_14.json')
+    fh = open(r'C:\Users\thartley\Documents\Dropbox\LocationHistory_8_18_14.json')
 buf = fh.read()
 raw = json.loads(buf)
 fh.close()
@@ -113,8 +114,10 @@ fh.close()
 ld_full = pd.DataFrame(raw['locations'])
 ld_full['latitudeE7'] = ld_full['latitudeE7']/float(1e7)
 ld_full['longitudeE7'] = ld_full['longitudeE7']/float(1e7)
-ld_full['timestampMs'] = ld_full['timestampMs'].map(lambda x: float(x))
+ld_full['timestamp'] = ld_full['timestampMs'].map(lambda x: float(x)/1000)
 ld = ld_full[ld_full.timestampMs > 1374303600.0*1000] #time since Jul. 20, 2013 when data reporting increased
+ld['timediff'] = ld.timestamp.diff()
+ld['datetime'] = ld.timestamp.map(lambda x: datetime.datetime.fromtimestamp(x))
 
 # <headingcell level=4>
 
@@ -152,27 +155,6 @@ m = Basemap(
 # Import the shapefile data to the Basemap 
 out = m.readshapefile(shapefilename, 'seattle', drawbounds=False, color='none', zorder=2)
 
-zzz ="""
-m2 = Basemap(
-    projection='tmerc',
-    lon_0=-122.3,
-    lat_0=47.6,
-    #lon_0=-2.,
-    #lat_0=49.,
-    ellps = 'WGS84',
-    llcrnrlon=coords[0] - extra * w,
-    llcrnrlat=coords[1] - extra + 0.01 * h,
-    urcrnrlon=coords[2] + extra * w,
-    urcrnrlat=coords[3] + extra + 0.01 * h,
-    lat_ts=0,
-    resolution='i',
-    suppress_ticks=True)
-out = m2.readshapefile(
-    helpers.user_prefix() + r'data\Shorelines\WGS84\Shorelines',
-    'water',
-    color='none',
-    zorder=2)
-"""
 
 # <codecell>
 
@@ -186,7 +168,7 @@ df_map['area_km'] = df_map['area_m'] / 100000
 
 # <codecell>
 
-"""
+zzz="""
 # Plot all neighborhoods
 fig = plt.figure(figsize=(8,13))
 for nhood in m.seattle:
@@ -212,29 +194,27 @@ ldn_points = filter(wards_polygon.contains, plaque_points)
 
 helpers.tic()
 
-# draw ward patches from polygons
-df_map['patches'] = df_map['poly'].map(lambda x: PolygonPatch(
-    x, fc='#555555', ec='#555555', lw=1, alpha=1, zorder=0))
-
-plt.clf()
 figwidth = 14
 fig = plt.figure(figsize=(figwidth, figwidth*h/w))
 ax = fig.add_subplot(111, axisbg='w', frame_on=False)
 
+# draw ward patches from polygons
+df_map['patches'] = df_map['poly'].map(lambda x: PolygonPatch(
+    x, fc='#555555', ec='#555555', lw=1, alpha=1, zorder=0))
 # plot boroughs by adding the PatchCollection to the axes instance
 ax.add_collection(PatchCollection(df_map['patches'].values, match_original=True))
 
 # the mincnt argument only shows cells with a value >= 1
 # hexbin wants np arrays, not plain lists
-hx = m.hexbin(
-    np.array([geom.x for geom in ldn_points]),
+hx = m.hexbin(np.array([geom.x for geom in ldn_points]),
     np.array([geom.y for geom in ldn_points]),
     gridsize=(70, int(70*h/w)),
     bins='log',
     mincnt=1,
     edgecolor='none',
-    alpha=1.,
-    cmap=plt.get_cmap('Blues'))
+    alpha=.9,
+    cmap=plt.get_cmap('Blues'),
+    ax=ax)
 
 df_map['patches'] = df_map['poly'].map(lambda x: PolygonPatch(
     x, fc='none', ec='#FFFF99', lw=1, alpha=1, zorder=1))
@@ -242,34 +222,33 @@ ax.add_collection(PatchCollection(df_map['patches'].values, match_original=True)
 
 # copyright and source data info
 smallprint = ax.text(
-    1.08, 0.0,
+    1.08, 0.02,
     "Google Latitude data from 2010-2014\nProduced by Tyler Hartley\nInspired by sensitivecities.com",
-    ha='right', va='bottom',
-    size=figwidth/1.75,
-    color='#555555',
-    transform=ax.transAxes)
+    ha='right', va='bottom', size=figwidth/1.75,
+    color='#555555', transform=ax.transAxes)
 
 # Draw a map scale
 m.drawmapscale(
     coords[0] + 0.05, coords[1] - 0.01,
     coords[0], coords[1],
-    4.,
-    units='mi',
+    4., units='mi',
     barstyle='fancy', labelstyle='simple',
-    fillcolor1='w', fillcolor2='#555555',
-    fontcolor='#555555',
-    zorder=5)
+    fillcolor1='w', fillcolor2='#555555', fontcolor='#555555',
+    zorder=5,
+    ax=ax)
 
-plt.title("Latitude Location History - Since 7/20/13")
-#plt.tight_layout()
-# this will set the image width to 722px at 100dpi
-#fig.set_size_inches(7., 10.5)
+plt.title("Latitude Location History - Since 7/20/13",
+          fontdict={'fontsize':20})
+plt.tight_layout()
+
 plt.savefig('data/location_history_7_20_13.png', dpi=300, frameon=False, transparent=True)
 
 helpers.toc()
 
-plt.show()
+# <codecell>
 
+"""<img id="zoom_01" src="small/image1.png" data-zoom-image="large/image1.jpg"/>"""
+"""$("#zoom_01").elevateZoom();"""
 
 # <headingcell level=1>
 
@@ -285,24 +264,24 @@ plt.axis('scaled')
 
 # <codecell>
 
-dates = ld.timestampMs.map(lambda x: datetime.datetime.fromtimestamp(float(x)/1000.).date() )
+
+out = ld.timediff[ld.timediff > -500]
+out.hist(bins=100, figsize=(16,8))
 
 # <codecell>
 
+def sec_since_midnight(datetime_obj):
+    return (datetime_obj.second + datetime_obj.minute*60 + 
+                datetime_obj.hour*3600)
+    
 
 # <codecell>
 
-res = dates[dates.map(lambda x: x > datetime.date(2013, 7, 10) and x < datetime.date(2013, 8, 10))].value_counts()
-#criterion = res.map(lambda x: x > datetime.date(2013, 7, 10))
+times = ld.datetime.map(lambda x: sec_since_midnight(x))
+times.hist(bins=24)
 
 # <codecell>
 
-fig = res.plot(figsize=(20, 12))
-
-# <codecell>
-
-ld.accuracy.hist()
-
-# <codecell>
-
+# it can basically be assumed that, since July 20th, my phone has uploaded my location once a minute. 
+# Slighly less at night than during the day (about 25% more frequenly durring waking hours)
 
