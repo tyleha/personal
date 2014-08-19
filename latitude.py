@@ -3,107 +3,7 @@
 
 # <headingcell level=1>
 
-# More manual version
-
-# <codecell>
-
-%load_ext grasp
-
-import json
-import time
-import matplotlib.pyplot as plt
-import pandas as pd
-
-# <codecell>
-
-import math
-from functools import total_ordering
-import datetime
-
-@total_ordering
-class Point(object):
-    def __init__(self, lat, lon, time, accuracy=None):
-        self.lat = lat
-        self.lon = lon
-        self.time = time
-        self.accuracy = accuracy
-        
-        self.date = datetime.datetime.fromtimestamp(self.time)
-        
-    def __repr__(self):
-        return "Point(%s, %s, %s)"%(self.lat, self.lon, self.time)     
-
-    def __lt__(self, other):
-        return self.time < other.time
-    
-    def __eq__(self, other):
-        return self.time == other.time
-    
-    def distance_between(self, other):
-        return distance_on_unit_sphere(self.lat, self.lon, 
-                                       other.lat, other.lon) & 3959. #radius of earth in miles
-    
-    @classmethod
-    def from_google_latitude(cls, latitude_dict):
-        return cls(float(latitude_dict['latitudeE7'])/1e7, 
-                     float(latitude_dict['longitudeE7'])/1e7, 
-                     int(latitude_dict['timestampMs'])/1000.,
-                     accuracy=latitude_dict['accuracy'])    
-    
-def distance_on_unit_sphere(lat1, long1, lat2, long2):
-    # http://www.johndcook.com/python_longitude_latitude.html
-    # Convert latitude and longitude to 
-    # spherical coordinates in radians.
-    degrees_to_radians = math.pi/180.0  
-    # phi = 90 - latitude
-    phi1 = (90.0 - lat1)*degrees_to_radians
-    phi2 = (90.0 - lat2)*degrees_to_radians
-    # theta = longitude
-    theta1 = long1*degrees_to_radians
-    theta2 = long2*degrees_to_radians
-        
-    # Compute spherical distance from spherical coordinates.
-    # For two locations in spherical coordinates 
-    # (1, theta, phi) and (1, theta, phi)
-    # cosine( arc length ) = 
-    #    sin phi sin phi' cos(theta-theta') + cos phi cos phi'
-    # distance = rho * arc length
-    
-    cos = (math.sin(phi1)*math.sin(phi2)*math.cos(theta1 - theta2) + 
-           math.cos(phi1)*math.cos(phi2))
-    arc = math.acos( cos )
-
-    # Remember to multiply arc by the radius of the earth 
-    # in your favorite set of units to get length.
-    return arc
-
-# <codecell>
-
-try:
-    fh = open(r'C:\Users\Tyler\Documents\My Dropbox\DOCUMENTS\LocationHistory5_1_14.json')
-except:
-    fh = open(r'C:\Users\thartley\Downloads\LocationHistory_5_16_14.json')
-buf = fh.read()
-raw = json.loads(buf)
-fh.close()
-
-ld = pd.DataFrame(raw['locations'])
-ld['latitudeE7'] = ld['latitudeE7']/float(1e7)
-ld['longitudeE7'] = ld['longitudeE7']/float(1e7)
-
-# <codecell>
-
-point = Point.from_google_latitude(raw['locations'][1])
-point.date
-
-# <codecell>
-
-fpoints = [Point.from_google_latitude(p) for p in raw['locations'][:1900]]
-plt.plot([point.lon for point in points], [point.lat for point in points], 'b.-')
-
-# <headingcell level=1>
-
-# Plot ERI Shapefile
+# Google Latitude Analysis
 
 # <codecell>
 
@@ -167,6 +67,35 @@ def cmap_discretize(cmap, N):
         cdict[key] = [(indices[i], colors_rgba[i - 1, ki], colors_rgba[i, ki]) for i in xrange(N + 1)]
     return matplotlib.colors.LinearSegmentedColormap(cmap.name + "_%d" % N, cdict, 1024)
 
+# <codecell>
+
+def distance_on_unit_sphere(lat1, long1, lat2, long2):
+    # http://www.johndcook.com/python_longitude_latitude.html
+    # Convert latitude and longitude to 
+    # spherical coordinates in radians.
+    degrees_to_radians = math.pi/180.0  
+    # phi = 90 - latitude
+    phi1 = (90.0 - lat1)*degrees_to_radians
+    phi2 = (90.0 - lat2)*degrees_to_radians
+    # theta = longitude
+    theta1 = long1*degrees_to_radians
+    theta2 = long2*degrees_to_radians
+        
+    # Compute spherical distance from spherical coordinates.
+    # For two locations in spherical coordinates 
+    # (1, theta, phi) and (1, theta, phi)
+    # cosine( arc length ) = 
+    #    sin phi sin phi' cos(theta-theta') + cos phi cos phi'
+    # distance = rho * arc length
+    
+    cos = (math.sin(phi1)*math.sin(phi2)*math.cos(theta1 - theta2) + 
+           math.cos(phi1)*math.cos(phi2))
+    arc = math.acos( cos )
+
+    # Remember to multiply arc by the radius of the earth 
+    # in your favorite set of units to get length.
+    return arc
+
 # <headingcell level=4>
 
 # Load Latitude data
@@ -174,7 +103,7 @@ def cmap_discretize(cmap, N):
 # <codecell>
 
 try:
-    fh = open(r'C:\Users\Tyler\Documents\My Dropbox\DOCUMENTS\LocationHistory5_1_14.json')
+    fh = open(r'C:\Users\Tyler\Documents\My Dropbox\LocationHistory_8_18_14.json')
 except:
     fh = open(r'C:\Users\thartley\Downloads\LocationHistory_5_16_14.json')
 buf = fh.read()
@@ -281,9 +210,11 @@ ldn_points = filter(wards_polygon.contains, plaque_points)
 
 # <codecell>
 
+helpers.tic()
+
 # draw ward patches from polygons
 df_map['patches'] = df_map['poly'].map(lambda x: PolygonPatch(
-    x, fc='#555555', ec='#787878', lw=.8, alpha=.9, zorder=0))
+    x, fc='#555555', ec='#555555', lw=1, alpha=1, zorder=0))
 
 plt.clf()
 figwidth = 14
@@ -304,6 +235,10 @@ hx = m.hexbin(
     edgecolor='none',
     alpha=1.,
     cmap=plt.get_cmap('Blues'))
+
+df_map['patches'] = df_map['poly'].map(lambda x: PolygonPatch(
+    x, fc='none', ec='#FFFF99', lw=1, alpha=1, zorder=1))
+ax.add_collection(PatchCollection(df_map['patches'].values, match_original=True))
 
 # copyright and source data info
 smallprint = ax.text(
@@ -330,7 +265,11 @@ plt.title("Latitude Location History - Since 7/20/13")
 # this will set the image width to 722px at 100dpi
 #fig.set_size_inches(7., 10.5)
 plt.savefig('data/location_history_7_20_13.png', dpi=300, frameon=False, transparent=True)
+
+helpers.toc()
+
 plt.show()
+
 
 # <headingcell level=1>
 
@@ -343,15 +282,6 @@ for nhood in m.seattle:
     plt.plot([xx[0] for xx in nhood], [xx[1] for xx in nhood], 'b')
 plt.plot(ld['latitudeE7'], ld['longitudeE7'])
 plt.axis('scaled')
-
-# <codecell>
-
-import datetime
-
-# <codecell>
-
-xx = datetime.datetime.fromtimestamp(1400267377956/1000.)
-xx.date()
 
 # <codecell>
 
@@ -371,13 +301,7 @@ fig = res.plot(figsize=(20, 12))
 
 # <codecell>
 
-xx = datetime.datetime(2013,7,20,0,0,0).strftime("%s")
-xx
-
-# <codecell>
-
-import time
-time.mktime(xx.timetuple())
+ld.accuracy.hist()
 
 # <codecell>
 
