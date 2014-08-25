@@ -29,6 +29,7 @@ import matplotlib.cm as cm
 from matplotlib.collections import PatchCollection
 from descartes import PolygonPatch
 import json
+import datetime
 
 import helpers
 
@@ -84,7 +85,7 @@ def cmap_discretize(cmap, N):
 try:
     fh = open(r'C:\Users\Tyler\Documents\My Dropbox\LocationHistory_8_18_14.json')
 except:
-    fh = open(r'C:\Users\thartley\Downloads\LocationHistory_5_16_14.json')
+    fh = open(r'C:\Users\thartley\Documents\Dropbox\LocationHistory_8_18_14.json')
 buf = fh.read()
 raw = json.loads(buf)
 fh.close()
@@ -95,6 +96,7 @@ del raw
 ld['latitude'] = ld['latitude']/float(1e7)
 ld['longitude'] = ld['longitude']/float(1e7)
 ld['timestamp'] = ld['timestamp'].map(lambda x: float(x)/1000)
+ld['datetime'] = ld.timestamp.map(datetime.datetime.fromtimestamp)
 ld = ld[ld.timestamp > 1374303600.0] #time since Jul. 20, 2013 when data reporting increased
 ld = ld[ld.accuracy < 1000] #Ignore locations with location estimates over 1000m?
 
@@ -175,18 +177,6 @@ all_points = MultiPoint(list(map_points.values))
 hood_polygons = prep(MultiPolygon(list(df_map['poly'].values)))
 
 city_points = filter(hood_polygons.contains, all_points)
-
-# <codecell>
-
-"""
-# Plot all neighborhoods
-fig = plt.figure(figsize=(8,13))
-for nhood in m.seattle:
-    xd, yd = zip(*nhood)
-    plt.plot(xd, yd)
-#plt.plot(ld['latitudeE7'], ld['longitudeE7'])
-plt.axis('scaled')
-"""
 
 # <headingcell level=2>
 
@@ -399,7 +389,6 @@ def distance_on_unit_sphere(lat1, long1, lat2, long2):
 
 # <codecell>
 
-
 degrees_to_radians = np.pi/180.0 
 ld['phi'] = (90.0 - ld.latitude) * degrees_to_radians 
 ld['theta'] = ld.latitude * degrees_to_radians
@@ -407,17 +396,64 @@ ld['theta'] = ld.latitude * degrees_to_radians
 # <codecell>
 
 ld['distance'] = np.arccos( 
-    np.sin(ld.phi)*np.sin(ld.phi.shift()) * np.cos(ld.theta - ld.theta.shift()) + 
-    np.cos(ld.phi)*np.cos(ld.phi.shift())
-    )
-ld.distance = ld.distance * 6378100 # radius of earth in meters
-ld['speed'] = ld.distance/(ld.timestamp.shift()-ld.timestamp)
+    np.sin(ld.phi)*np.sin(ld.phi.shift(-1)) * np.cos(ld.theta - ld.theta.shift(-1)) + 
+    np.cos(ld.phi)*np.cos(ld.phi.shift(-1))
+    ) * 6378100 # radius of earth in meters
+
+ld['speed'] = ld.distance/(ld.timestamp - ld.timestamp.shift(-1))/1000.*3600
+fastindex = ld[(ld.speed > 300 and ld.distance > 100000.)].index
 
 # <codecell>
 
 
+idx = 0
+pts = ld.ix[fastindex[idx]:fastindex[idx]+1]
+
+a = ld.ix[fastindex[idx]]
+b = ld.ix[fastindex[idx]+1]
+#a = pts.iloc[0]
+
+print a.latitude,",", a.longitude
+print b.latitude,",", b.longitude
+
+fig = plt.figure(figsize=(18,12))
+
+buf = .5
+width = pts.longitude.ptp()
+height = pts.latitude.ptp()
+
+m = Basemap(llcrnrlon=pts.longitude.min() - width*buf,
+            llcrnrlat=pts.latitude.min() - height*buf,
+            urcrnrlon=pts.longitude.max() + width*buf,
+            urcrnrlat=pts.latitude.max() + height*buf,
+            projection='merc',
+            resolution='c',
+            lat_0=pts.latitude.mean(),
+            lon_0=pts.longitude.mean())
+
+m.drawcoastlines()
+m.drawstates()
+#m.drawcountries()
+
+"""
+out = m.readshapefile(shapefilename, 'seattle', drawbounds=True, color='none', zorder=2)
+#fig = plt.figure(figsize=(8,13))
+for nhood in m.seattle:
+    mapped = [Point(m(xd, yd)) for xd, yd in nhood]
+    m.plot([pt.x for pt in mapped], [pt.y for pt in mapped])
+"""
+
+#m.drawparallels(np.arange(pts.latitude.min(),pts.latitude.max(),2.), labels=[1,1,1,1], fmt="%0.1f")
+#m.drawmeridians(np.arange(pts.longitude.min(), pts.longitude.max(),5.), labels=[1,1,1,1], fmt="%0.1f")
+
+pa = Point(m(a.longitude, a.latitude))
+pb = Point(m(b.longitude, b.latitude))
+plt.plot([pa.x, pb.x], [pa.y, pb.y], 'b.-')
+
 # <codecell>
 
-res = dates[dates.map(lambda x: x > datetime.date(2013, 7, 10) and x < datetime.date(2013, 8, 10))].value_counts()
-#criterion = res.map(lambda x: x > datetime.date(2013, 7, 10))
+pts
+
+# <codecell>
+
 
