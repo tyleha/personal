@@ -5,9 +5,17 @@
 
 # Google Latitude Analysis
 
-# <codecell>
+# <markdowncell>
 
-%load_ext grasp
+# ### To Do - make this a narrative fitting of a blog
+# 1. Plot the chloropleth of neighborhoods
+# 2. Remove time at work and home from data and re-plot
+# 3. Find farthest point traveled
+# 4. Calculate number of flights taken
+# 
+#     
+
+# <codecell>
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -21,7 +29,6 @@ import matplotlib.cm as cm
 from matplotlib.collections import PatchCollection
 from descartes import PolygonPatch
 import json
-import datetime
 
 import helpers
 
@@ -60,42 +67,13 @@ def cmap_discretize(cmap, N):
     """
     if type(cmap) == str:
         cmap = get_cmap(cmap)
-    colors_i = concatenate((linspace(0, 1., N), (0., 0., 0., 0.)))
+    colors_i = np.concatenate((np.linspace(0, 1., N), (0., 0., 0., 0.)))
     colors_rgba = cmap(colors_i)
-    indices = linspace(0, 1., N + 1)
+    indices = np.linspace(0, 1., N + 1)
     cdict = {}
     for ki, key in enumerate(('red', 'green', 'blue')):
         cdict[key] = [(indices[i], colors_rgba[i - 1, ki], colors_rgba[i, ki]) for i in xrange(N + 1)]
     return matplotlib.colors.LinearSegmentedColormap(cmap.name + "_%d" % N, cdict, 1024)
-
-# <codecell>
-
-def distance_on_unit_sphere(lat1, long1, lat2, long2):
-    # http://www.johndcook.com/python_longitude_latitude.html
-    # Convert latitude and longitude to 
-    # spherical coordinates in radians.
-    degrees_to_radians = math.pi/180.0  
-    # phi = 90 - latitude
-    phi1 = (90.0 - lat1)*degrees_to_radians
-    phi2 = (90.0 - lat2)*degrees_to_radians
-    # theta = longitude
-    theta1 = long1*degrees_to_radians
-    theta2 = long2*degrees_to_radians
-        
-    # Compute spherical distance from spherical coordinates.
-    # For two locations in spherical coordinates 
-    # (1, theta, phi) and (1, theta, phi)
-    # cosine( arc length ) = 
-    #    sin phi sin phi' cos(theta-theta') + cos phi cos phi'
-    # distance = rho * arc length
-    
-    cos = (math.sin(phi1)*math.sin(phi2)*math.cos(theta1 - theta2) + 
-           math.cos(phi1)*math.cos(phi2))
-    arc = math.acos( cos )
-
-    # Remember to multiply arc by the radius of the earth 
-    # in your favorite set of units to get length.
-    return arc
 
 # <headingcell level=4>
 
@@ -106,22 +84,23 @@ def distance_on_unit_sphere(lat1, long1, lat2, long2):
 try:
     fh = open(r'C:\Users\Tyler\Documents\My Dropbox\LocationHistory_8_18_14.json')
 except:
-    fh = open(r'C:\Users\thartley\Documents\Dropbox\LocationHistory_8_18_14.json')
+    fh = open(r'C:\Users\thartley\Downloads\LocationHistory_5_16_14.json')
 buf = fh.read()
 raw = json.loads(buf)
 fh.close()
 
-ld_full = pd.DataFrame(raw['locations'])
-ld_full['latitudeE7'] = ld_full['latitudeE7']/float(1e7)
-ld_full['longitudeE7'] = ld_full['longitudeE7']/float(1e7)
-ld_full['timestamp'] = ld_full['timestampMs'].map(lambda x: float(x)/1000)
-ld = ld_full[ld_full.timestampMs > 1374303600.0*1000] #time since Jul. 20, 2013 when data reporting increased
-ld['timediff'] = ld.timestamp.diff()
-ld['datetime'] = ld.timestamp.map(lambda x: datetime.datetime.fromtimestamp(x))
+ld = pd.DataFrame(raw['locations'])
+ld.rename(columns={'latitudeE7':'latitude', 'longitudeE7':'longitude', 'timestampMs':'timestamp'}, inplace=True)
+del raw
+ld['latitude'] = ld['latitude']/float(1e7)
+ld['longitude'] = ld['longitude']/float(1e7)
+ld['timestamp'] = ld['timestamp'].map(lambda x: float(x)/1000)
+ld = ld[ld.timestamp > 1374303600.0] #time since Jul. 20, 2013 when data reporting increased
+ld = ld[ld.accuracy < 1000] #Ignore locations with location estimates over 1000m?
 
-# <headingcell level=4>
+# <headingcell level=2>
 
-# Get boundaries from shapefile
+# Import Seattle Shapefile data and start making Polygons
 
 # <codecell>
 
@@ -155,6 +134,27 @@ m = Basemap(
 # Import the shapefile data to the Basemap 
 out = m.readshapefile(shapefilename, 'seattle', drawbounds=False, color='none', zorder=2)
 
+zzz ="""
+m2 = Basemap(
+    projection='tmerc',
+    lon_0=-122.3,
+    lat_0=47.6,
+    #lon_0=-2.,
+    #lat_0=49.,
+    ellps = 'WGS84',
+    llcrnrlon=coords[0] - extra * w,
+    llcrnrlat=coords[1] - extra + 0.01 * h,
+    urcrnrlon=coords[2] + extra * w,
+    urcrnrlat=coords[3] + extra + 0.01 * h,
+    lat_ts=0,
+    resolution='i',
+    suppress_ticks=True)
+out = m2.readshapefile(
+    helpers.user_prefix() + r'data\Shorelines\WGS84\Shorelines',
+    'water',
+    color='none',
+    zorder=2)
+"""
 
 # <codecell>
 
@@ -168,7 +168,17 @@ df_map['area_km'] = df_map['area_m'] / 100000
 
 # <codecell>
 
-zzz="""
+# Create Point objects in map coordinates from dataframe lon and lat values
+map_points = pd.Series([Point(m(mapped_x, mapped_y)) for mapped_x, mapped_y in zip(ld['longitude'], ld['latitude'])])
+
+all_points = MultiPoint(list(map_points.values))
+hood_polygons = prep(MultiPolygon(list(df_map['poly'].values)))
+
+city_points = filter(hood_polygons.contains, all_points)
+
+# <codecell>
+
+"""
 # Plot all neighborhoods
 fig = plt.figure(figsize=(8,13))
 for nhood in m.seattle:
@@ -178,43 +188,144 @@ for nhood in m.seattle:
 plt.axis('scaled')
 """
 
-# <codecell>
+# <headingcell level=2>
 
-# Create Point objects in map coordinates from dataframe lon and lat values
-map_points = pd.Series(
-    [Point(m(mapped_x, mapped_y)) for mapped_x, mapped_y in zip(ld['longitudeE7'], 
-                                                                ld['latitudeE7'])])
-
-plaque_points = MultiPoint(list(map_points.values))
-wards_polygon = prep(MultiPolygon(list(df_map['poly'].values)))
-# calculate points that fall within the London boundary
-ldn_points = filter(wards_polygon.contains, plaque_points)
+# Neighborhood Chloropleth Graph
 
 # <codecell>
 
-helpers.tic()
+# Compute the points that belong in each neighborhood
+def num_of_contained_points(apolygon, city_points):
+    return int(len(filter(prep(apolygon).contains, city_points)))
+    
+df_map['hood_count'] = df_map['poly'].apply(num_of_contained_points, args=(city_points,))
+#df_map['hood_count'] = df_map['poly'].map(lambda x: int(len(filter(prep(x).contains, city_points))))b
 
+# <codecell>
+
+df_map['hood_perc'] = df_map.hood_count/df_map.hood_count.sum()
+df_map['hood_hours'] = df_map.hood_count/60.
+
+# <codecell>
+
+from pysal.esda.mapclassify import Natural_Breaks
+from matplotlib.colors import Normalize
+
+# <codecell>
+
+# Calculate Jenks natural breaks for density
+breaks = Natural_Breaks(df_map[df_map['hood_hours'] > 0].hood_hours, initial=300, k=5)
+
+jb = pd.DataFrame({'jenks_bins': breaks.yb}, index=df_map[df_map.hood_count > 0].index)
+try:
+    df_map = df_map.join(jb)
+except:
+    df_map.jenks_bins = jb
+df_map.jenks_bins.fillna(-1, inplace=True)
+
+jenks_labels = ["> %d hours"%(perc) for perc in breaks.bins[:-1]]
+jenks_labels = ['Have never been here', "> 0 hours"]+jenks_labels
+print jenks_labels
+
+# <codecell>
+
+breaks = [0., 4., 24., 64., 135., 1e12]
+def self_categorize(entry, breaks):
+    for i in range(len(breaks)-1):
+        if entry > breaks[i] and entry <= breaks[i+1]:
+            return i
+    else:
+        return -1
+jb = df_map.hood_hours.apply(self_categorize, args=(breaks,))
+try:
+    df_map = df_map.join(jb)
+except:
+    df_map.jenks_bins = jb
+jenks_labels = ["> %d hours"%(perc) for perc in breaks[:-1]]
+jenks_labels = ['Have never been here']+jenks_labels
+print jenks_labels
+
+# <codecell>
+
+plt.clf()
 figwidth = 14
 fig = plt.figure(figsize=(figwidth, figwidth*h/w))
 ax = fig.add_subplot(111, axisbg='w', frame_on=False)
 
+# use a blue colour ramp - we'll be converting it to a map using cmap()
+cmap = plt.get_cmap('Blues')
+# draw wards with grey outlines
+df_map['patches'] = df_map['poly'].map(lambda x: PolygonPatch(x, ec='#111111', lw=.8, alpha=1., zorder=4))
+pc = PatchCollection(df_map['patches'], match_original=True)
+# impose our colour map onto the patch collection
+norm = Normalize()
+pc.set_facecolor(cmap(norm(df_map['jenks_bins'].values)))
+ax.add_collection(pc)
+
+# Add a colour bar
+cb = colorbar_index(ncolors=len(jenks_labels), cmap=cmap, shrink=0.5, labels=jenks_labels)
+cb.ax.tick_params(labelsize=16)
+
+"""
+# Bin method, copyright and source data info
+smallprint = ax.text(
+    1.03, 0,
+    'Classification method: natural breaks\nContains Ordnance Survey data\n$\copyright$ Crown copyright and database right 2013\nPlaque data from http://openplaques.org',
+    ha='right', va='bottom',
+    size=4,
+    color='#555555',
+    transform=ax.transAxes)
+"""
+# Draw a map scale
+m.drawmapscale(
+    coords[0] + 0.08, coords[1] + -0.002,
+    coords[0], coords[1],
+    10.,
+    fontsize=16,
+    barstyle='fancy', labelstyle='simple',
+    fillcolor1='w', fillcolor2='#555555',
+    fontcolor='#555555',
+    zorder=5)
+
+# this will set the image width to 722px at 100dpi
+plt.title("Time Spent in Seattle Neighborhoods", fontsize=16)
+plt.tight_layout()
+plt.savefig('data/chloropleth.png', dpi=300, frameon=False, transparent=True)
+
+# <headingcell level=2>
+
+# Hexbin Plot
+
+# <codecell>
+
+"""PLOT A HEXBIN MAP OF LOCATION
+"""
+
+helpers.tic()
+
 # draw ward patches from polygons
 df_map['patches'] = df_map['poly'].map(lambda x: PolygonPatch(
     x, fc='#555555', ec='#555555', lw=1, alpha=1, zorder=0))
+
+plt.clf()
+figwidth = 14
+fig = plt.figure(figsize=(figwidth, figwidth*h/w))
+ax = fig.add_subplot(111, axisbg='w', frame_on=False)
+
 # plot boroughs by adding the PatchCollection to the axes instance
 ax.add_collection(PatchCollection(df_map['patches'].values, match_original=True))
 
 # the mincnt argument only shows cells with a value >= 1
 # hexbin wants np arrays, not plain lists
-hx = m.hexbin(np.array([geom.x for geom in ldn_points]),
-    np.array([geom.y for geom in ldn_points]),
+hx = m.hexbin(
+    np.array([geom.x for geom in city_points]),
+    np.array([geom.y for geom in city_points]),
     gridsize=(70, int(70*h/w)),
     bins='log',
     mincnt=1,
     edgecolor='none',
-    alpha=.9,
-    cmap=plt.get_cmap('Blues'),
-    ax=ax)
+    alpha=1.,
+    cmap=plt.get_cmap('Blues'))
 
 df_map['patches'] = df_map['poly'].map(lambda x: PolygonPatch(
     x, fc='none', ec='#FFFF99', lw=1, alpha=1, zorder=1))
@@ -222,33 +333,34 @@ ax.add_collection(PatchCollection(df_map['patches'].values, match_original=True)
 
 # copyright and source data info
 smallprint = ax.text(
-    1.08, 0.02,
+    1.08, 0.0,
     "Google Latitude data from 2010-2014\nProduced by Tyler Hartley\nInspired by sensitivecities.com",
-    ha='right', va='bottom', size=figwidth/1.75,
-    color='#555555', transform=ax.transAxes)
+    ha='right', va='bottom',
+    size=figwidth/1.75,
+    color='#555555',
+    transform=ax.transAxes)
 
 # Draw a map scale
 m.drawmapscale(
     coords[0] + 0.05, coords[1] - 0.01,
     coords[0], coords[1],
-    4., units='mi',
+    4.,
+    units='mi',
     barstyle='fancy', labelstyle='simple',
-    fillcolor1='w', fillcolor2='#555555', fontcolor='#555555',
-    zorder=5,
-    ax=ax)
+    fillcolor1='w', fillcolor2='#555555',
+    fontcolor='#555555',
+    zorder=5)
 
-plt.title("Latitude Location History - Since 7/20/13",
-          fontdict={'fontsize':20})
-plt.tight_layout()
-
+plt.title("Latitude Location History - Since 7/20/13")
+#plt.tight_layout()
+# this will set the image width to 722px at 100dpi
+#fig.set_size_inches(7., 10.5)
 plt.savefig('data/location_history_7_20_13.png', dpi=300, frameon=False, transparent=True)
 
 helpers.toc()
 
-# <codecell>
+plt.show()
 
-"""<img id="zoom_01" src="small/image1.png" data-zoom-image="large/image1.jpg"/>"""
-"""$("#zoom_01").elevateZoom();"""
 
 # <headingcell level=1>
 
@@ -256,32 +368,56 @@ helpers.toc()
 
 # <codecell>
 
-# Plot all neighborhoods
-for nhood in m.seattle:
-    plt.plot([xx[0] for xx in nhood], [xx[1] for xx in nhood], 'b')
-plt.plot(ld['latitudeE7'], ld['longitudeE7'])
-plt.axis('scaled')
-
-# <codecell>
-
-
-out = ld.timediff[ld.timediff > -500]
-out.hist(bins=100, figsize=(16,8))
-
-# <codecell>
-
-def sec_since_midnight(datetime_obj):
-    return (datetime_obj.second + datetime_obj.minute*60 + 
-                datetime_obj.hour*3600)
+def distance_on_unit_sphere(lat1, long1, lat2, long2):
+    import math
+    # http://www.johndcook.com/python_longitude_latitude.html
+    # Convert latitude and longitude to 
+    # spherical coordinates in radians.
+    degrees_to_radians = math.pi/180.0  
+    # phi = 90 - latitude
+    phi1 = (90.0 - lat1)*degrees_to_radians
+    phi2 = (90.0 - lat2)*degrees_to_radians
+    # theta = longitude
+    theta1 = long1*degrees_to_radians
+    theta2 = long2*degrees_to_radians
+        
+    # Compute spherical distance from spherical coordinates.
+    # For two locations in spherical coordinates 
+    # (1, theta, phi) and (1, theta, phi)
+    # cosine( arc length ) = 
+    #    sin phi sin phi' cos(theta-theta') + cos phi cos phi'
+    # distance = rho * arc length
     
+    cos = (math.sin(phi1)*math.sin(phi2)*math.cos(theta1 - theta2) + 
+           math.cos(phi1)*math.cos(phi2))
+    arc = math.acos( cos )
+
+    # Remember to multiply arc by the radius of the earth 
+    # in your favorite set of units to get length.
+    return arc
+
 
 # <codecell>
 
-times = ld.datetime.map(lambda x: sec_since_midnight(x))
-times.hist(bins=24)
+
+degrees_to_radians = np.pi/180.0 
+ld['phi'] = (90.0 - ld.latitude) * degrees_to_radians 
+ld['theta'] = ld.latitude * degrees_to_radians
 
 # <codecell>
 
-# it can basically be assumed that, since July 20th, my phone has uploaded my location once a minute. 
-# Slighly less at night than during the day (about 25% more frequenly durring waking hours)
+ld['distance'] = np.arccos( 
+    np.sin(ld.phi)*np.sin(ld.phi.shift()) * np.cos(ld.theta - ld.theta.shift()) + 
+    np.cos(ld.phi)*np.cos(ld.phi.shift())
+    )
+ld.distance = ld.distance * 6378100 # radius of earth in meters
+ld['speed'] = ld.distance/(ld.timestamp.shift()-ld.timestamp)
+
+# <codecell>
+
+
+# <codecell>
+
+res = dates[dates.map(lambda x: x > datetime.date(2013, 7, 10) and x < datetime.date(2013, 8, 10))].value_counts()
+#criterion = res.map(lambda x: x > datetime.date(2013, 7, 10))
 
