@@ -10,7 +10,7 @@
 # ### To Do - make this a narrative fitting of a blog
 # 1. ~~Plot the chloropleth of neighborhoods~~
 # 2. Remove time at work and home from data and re-plot
-# 3. Find farthest point traveled
+# 3. ~~Find farthest point traveled~~
 # 4. ~~Calculate number of flights taken~~
 # 
 #     
@@ -36,11 +36,11 @@ import helpers
 # <codecell>
 
 def distance_on_unit_sphere(lat1, long1, lat2, long2):
-    import math
+    
     # http://www.johndcook.com/python_longitude_latitude.html
     # Convert latitude and longitude to 
     # spherical coordinates in radians.
-    degrees_to_radians = math.pi/180.0  
+    degrees_to_radians = np.pi/180.0  
     # phi = 90 - latitude
     phi1 = (90.0 - lat1)*degrees_to_radians
     phi2 = (90.0 - lat2)*degrees_to_radians
@@ -55,9 +55,9 @@ def distance_on_unit_sphere(lat1, long1, lat2, long2):
     #    sin phi sin phi' cos(theta-theta') + cos phi cos phi'
     # distance = rho * arc length
     
-    cos = (math.sin(phi1)*math.sin(phi2)*math.cos(theta1 - theta2) + 
-           math.cos(phi1)*math.cos(phi2))
-    arc = math.acos( cos )
+    cos = (np.sin(phi1)*np.sin(phi2)*np.cos(theta1 - theta2) + 
+           np.cos(phi1)*np.cos(phi2))
+    arc = np.arccos( cos )
 
     # Remember to multiply arc by the radius of the earth 
     # in your favorite set of units to get length.
@@ -202,6 +202,10 @@ df_map['area_km'] = df_map['area_m'] / 100000
 # <codecell>
 
 # Create Point objects in map coordinates from dataframe lon and lat values
+#ld['distfromhome'] = distance_on_unit_sphere(ld.latitude, ld.longitude, 47.663794, -122.335812)*6367.1
+#ld['distfromwork'] = distance_on_unit_sphere(ld.latitude, ld.longitude, 47.639906, -122.378381)*6367.1
+#ld = ld[(ld.distfromhome > 0.3) & (ld.distfromwork > 0.5)].reset_index(drop=True)
+
 map_points = pd.Series([Point(m(mapped_x, mapped_y)) for mapped_x, mapped_y in zip(ld['longitude'], ld['latitude'])])
 
 all_points = MultiPoint(list(map_points.values))
@@ -376,7 +380,7 @@ plt.title("Latitude Location History - Since 7/20/13")
 #plt.tight_layout()
 # this will set the image width to 722px at 100dpi
 #fig.set_size_inches(7., 10.5)
-plt.savefig('data/location_history_7_20_13.png', dpi=300, frameon=False, transparent=True)
+plt.savefig('data/hexbin.png', dpi=300, frameon=False, transparent=True)
 
 helpers.toc()
 
@@ -386,10 +390,6 @@ plt.show()
 # <headingcell level=1>
 
 # Flights Taken
-
-# <codecell>
-
-
 
 # <codecell>
 
@@ -495,7 +495,7 @@ plt.savefig('data/flightdata.png', dpi=300, frameon=False, transparent=True)
 
 # <codecell>
 
-flights#.sort(columns='distance')
+flights.distance.sum()
 
 # <codecell>
 
