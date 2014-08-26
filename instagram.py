@@ -105,7 +105,7 @@ def search_advanced(api, tag_primary, next=None, caption=None, tag=None, count=2
         sys.stdout.write('\rPage %s - %s results found'%(iters, len(results)))
         sys.stdout.flush()
         
-    print '%s calls remaining'%api.x_ratelimit_remaining
+    #print '%s calls remaining'%api.x_ratelimit_remaining
     return results, next
 
 # <codecell>
@@ -125,7 +125,7 @@ next_url=None
 # <codecell>
 
 
-results, next_url= search_advanced(api, tag_primary='', caption=['twin'], count=50, max_iters=500, next=next_url)
+results, next_url= search_advanced(api, tag_primary='', caption=[''], count=50, max_iters=500, next=next_url)
 
 # <codecell>
 
@@ -138,7 +138,7 @@ for media in results:
         html += '''<a href="http://www.iconosquare.com/%s">%s</a></br>'''%(media.user.username, media.user.username)
     except:
         pass
-#HTML(html)
+HTML(html)
 
 # <headingcell level=1>
 

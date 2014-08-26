@@ -35,6 +35,36 @@ import helpers
 
 # <codecell>
 
+def distance_on_unit_sphere(lat1, long1, lat2, long2):
+    import math
+    # http://www.johndcook.com/python_longitude_latitude.html
+    # Convert latitude and longitude to 
+    # spherical coordinates in radians.
+    degrees_to_radians = math.pi/180.0  
+    # phi = 90 - latitude
+    phi1 = (90.0 - lat1)*degrees_to_radians
+    phi2 = (90.0 - lat2)*degrees_to_radians
+    # theta = longitude
+    theta1 = long1*degrees_to_radians
+    theta2 = long2*degrees_to_radians
+        
+    # Compute spherical distance from spherical coordinates.
+    # For two locations in spherical coordinates 
+    # (1, theta, phi) and (1, theta, phi)
+    # cosine( arc length ) = 
+    #    sin phi sin phi' cos(theta-theta') + cos phi cos phi'
+    # distance = rho * arc length
+    
+    cos = (math.sin(phi1)*math.sin(phi2)*math.cos(theta1 - theta2) + 
+           math.cos(phi1)*math.cos(phi2))
+    arc = math.acos( cos )
+
+    # Remember to multiply arc by the radius of the earth 
+    # in your favorite set of units to get length.
+    return arc
+
+# <codecell>
+
 # Convenience functions for working with colour ramps and bars
 def colorbar_index(ncolors, cmap, labels=None, **kwargs):
     """
@@ -100,9 +130,6 @@ ld['datetime'] = ld.timestamp.map(datetime.datetime.fromtimestamp)
 ld = ld[ld.timestamp > 1374303600.0] #time since Jul. 20, 2013 when data reporting increased
 ld = ld[ld.accuracy < 1000] #Ignore locations with location estimates over 1000m?
 ld.reset_index(inplace=True)
-
-# <codecell>
-
 
 # <headingcell level=2>
 
@@ -358,7 +385,7 @@ plt.show()
 
 # <headingcell level=1>
 
-# Scratch
+# Flights Taken
 
 # <codecell>
 
@@ -374,74 +401,15 @@ ld['distance'] = np.arccos(
     ) * 6378.100 # radius of earth in km
 
 ld['speed'] = ld.distance/(ld.timestamp - ld.timestamp.shift(-1))*3600
+
+# Identify potential flights
 travelindex = ld[(ld['speed'] > 10) & (ld['distance'] > 300.)].index
 print "Found %s instances of flights"%len(travelindex)
 
 # <codecell>
 
-
-travel = 20
-idx = travelindex[travel]
-pts = ld.ix[idx:idx+1]
-
-a = pts.iloc[0]
-b = pts.iloc[1]
-#a = pts.iloc[0]
-
-print a.latitude,",", a.longitude
-print b.latitude,",", b.longitude
-print pts.datetime
-print pts.distance
-
-fig = plt.figure(figsize=(18,12))
-
-buf = .3
-width = pts.longitude.ptp()
-height = pts.latitude.ptp()
-
-m = Basemap(llcrnrlon=pts.longitude.min() - width*buf,
-            llcrnrlat=pts.latitude.min() - height*buf,
-            urcrnrlon=pts.longitude.max() + width*buf,
-            urcrnrlat=pts.latitude.max() + height*buf,
-            projection='tmerc',
-            resolution='l',
-            lat_0=pts.latitude.mean(),
-            lon_0=pts.longitude.mean())
-
-m.drawcoastlines()
-m.drawstates()
-m.drawcountries()
-
-"""
-out = m.readshapefile(shapefilename, 'seattle', drawbounds=True, color='none', zorder=2)
-#fig = plt.figure(figsize=(8,13))
-for nhood in m.seattle:
-    mapped = [Point(m(xd, yd)) for xd, yd in nhood]
-    m.plot([pt.x for pt in mapped], [pt.y for pt in mapped])
-"""
-
-#m.drawparallels(np.arange(pts.latitude.min(),pts.latitude.max(),2.), labels=[1,1,1,1], fmt="%0.1f")
-#m.drawmeridians(np.arange(pts.longitude.min(), pts.longitude.max(),5.), labels=[1,1,1,1], fmt="%0.1f")
-
-pa = Point(m(a.longitude, a.latitude))
-pb = Point(m(b.longitude, b.latitude))
-plt.plot([pa.x, pb.x], [pa.y, pb.y], 'b.-')
-
-# <codecell>
-
-flights = []
-for idx in travelindex:
-    
-
-# <codecell>
-
-# Make DataFrame of Flights taken with new columns: beginlat, beginlon, endlat, endlon, begin, end, distance, speed
-
-# <codecell>
-
-travelindex+1
-
-# <codecell>
+# Make DataFrame of Flights taken with new columns: beginlat, beginlon, endlat, endlon, 
+# begin, end, distance, speed
 
 flights = pd.DataFrame(data={'endlat':ld.ix[travelindex].latitude,
                              'endlon':ld.ix[travelindex].longitude,
@@ -453,10 +421,75 @@ flights = pd.DataFrame(data={'endlat':ld.ix[travelindex].latitude,
 flights['startlat'] = ld.ix[travelindex+1].latitude.reset_index(drop=True)
 flights['startlon'] = ld.ix[travelindex+1].longitude.reset_index(drop=True)
 flights['startdatetime'] = ld.ix[travelindex+1].datetime.reset_index(drop=True)
-flights
+
+# Clean up flights that have random GPS data in the middle of them
+f = flights[flights['index'].diff() == 1]
+cuts = np.split(f, (f['index'].diff() > 1).nonzero()[0])
+
+for cut in cuts:
+    flight_origin = cut.iloc[-1]
+    idx = cut.index[0]-1
+    flights.ix[idx, 'startlat'] = flight_origin.startlat
+    flights.ix[idx, 'startlon'] = flight_origin.startlon
+    flights.ix[idx, 'startdatetime'] = flight_origin.startdatetime
+    flights.ix[idx, 'startlat'] = flight_origin.startlat
+    flights.ix[idx, 'distance'] = distance_on_unit_sphere(flights.ix[idx].startlat,
+                                                       flights.ix[idx].startlon,
+                                                       flights.ix[idx].endlat,
+                                                       flights.ix[idx].endlon)*6378.1
+
+flights = flights.drop(f.index).reset_index(drop=True)
+    
 
 # <codecell>
 
+fig = plt.figure(figsize=(18,12))
+
+fly = flights#.ix[12]
+
+buf = .3
+minlat = np.min([fly.endlat.min(), fly.startlat.min()])
+minlon = np.min([fly.endlon.min(), fly.startlon.min()])
+maxlat = np.max([fly.endlat.max(), fly.startlat.max()])
+maxlon = np.max([fly.endlon.max(), fly.startlon.max()])
+width = maxlon - minlon
+height = maxlat - minlat
+
+
+m = Basemap(#llcrnrlon=minlon - width*buf,
+            #llcrnrlat=minlat - height*buf*4,
+            #urcrnrlon=maxlon + width*buf,
+            #urcrnrlat=maxlat + height*buf/4,
+            projection='robin',
+            resolution='c',
+            #lat_1=minlat, lat_2=maxlat,
+            #lat_0=minlat + height/2,
+            #lon_0=minlon + width/2)
+            lon_0=-180)
+
+m.drawcoastlines()
+m.drawstates()
+m.drawcountries()
+m.fillcontinents()
+
+#m.drawparallels(np.arange(pts.latitude.min(),pts.latitude.max(),2.), labels=[1,1,1,1], fmt="%0.1f")
+#m.drawmeridians(np.arange(pts.longitude.min(), pts.longitude.max(),5.), labels=[1,1,1,1], fmt="%0.1f")
+
+for f in fly.iterrows():
+    f = f[1]
+    m.drawgreatcircle(f.startlon, f.startlat, f.endlon, f.endlat, linewidth=3, alpha=0.4, color='b' )
+    #pa = Point(m(f.startlon, f.startlat))
+    #pb = Point(m(f.endlon, f.endlat))
+    #plt.plot([pa.x, pb.x], [pa.y, pb.y], linewidth=4)
+plt.savefig('data/flightdata.png', dpi=300, frameon=False, transparent=True)
+
+# <headingcell level=1>
+
+# Scratch
+
+# <codecell>
+
+plt.plot()
 
 # <codecell>
 
