@@ -8,10 +8,10 @@
 # <markdowncell>
 
 # ### To Do - make this a narrative fitting of a blog
-# 1. Plot the chloropleth of neighborhoods
+# 1. ~~Plot the chloropleth of neighborhoods~~
 # 2. Remove time at work and home from data and re-plot
 # 3. Find farthest point traveled
-# 4. Calculate number of flights taken
+# 4. ~~Calculate number of flights taken~~
 # 
 #     
 
@@ -129,7 +129,7 @@ ld['timestamp'] = ld['timestamp'].map(lambda x: float(x)/1000)
 ld['datetime'] = ld.timestamp.map(datetime.datetime.fromtimestamp)
 ld = ld[ld.timestamp > 1374303600.0] #time since Jul. 20, 2013 when data reporting increased
 ld = ld[ld.accuracy < 1000] #Ignore locations with location estimates over 1000m?
-ld.reset_index(inplace=True)
+ld.reset_index(drop=True, inplace=True)
 
 # <headingcell level=2>
 
@@ -389,11 +389,13 @@ plt.show()
 
 # <codecell>
 
+
+
+# <codecell>
+
 degrees_to_radians = np.pi/180.0 
 ld['phi'] = (90.0 - ld.latitude) * degrees_to_radians 
 ld['theta'] = ld.longitude * degrees_to_radians
-
-# <codecell>
 
 ld['distance'] = np.arccos( 
     np.sin(ld.phi)*np.sin(ld.phi.shift(-1)) * np.cos(ld.theta - ld.theta.shift(-1)) + 
@@ -403,7 +405,7 @@ ld['distance'] = np.arccos(
 ld['speed'] = ld.distance/(ld.timestamp - ld.timestamp.shift(-1))*3600
 
 # Identify potential flights
-travelindex = ld[(ld['speed'] > 10) & (ld['distance'] > 300.)].index
+travelindex = ld[(ld['speed'] > 10) & (ld['distance'] > 80.)].index
 print "Found %s instances of flights"%len(travelindex)
 
 # <codecell>
@@ -439,13 +441,15 @@ for cut in cuts:
                                                        flights.ix[idx].endlon)*6378.1
 
 flights = flights.drop(f.index).reset_index(drop=True)
-    
+flights = flights[flights.distance > 200].reset_index(drop=True)
 
 # <codecell>
 
 fig = plt.figure(figsize=(18,12))
 
-fly = flights#.ix[12]
+#fly = flights[(flights.startlon < 0) & (flights.endlon < 0)]# Western Hemisphere Flights
+fly = flights[(flights.startlon > 0) & (flights.endlon > 0)] # Eastern Hemisphere Flights
+#fly = flights # All flights. Need to use Robin projection w/ center as -180 as 2 cross 180/-180 Lon
 
 buf = .3
 minlat = np.min([fly.endlat.min(), fly.startlat.min()])
@@ -456,16 +460,16 @@ width = maxlon - minlon
 height = maxlat - minlat
 
 
-m = Basemap(#llcrnrlon=minlon - width*buf,
-            #llcrnrlat=minlat - height*buf*4,
-            #urcrnrlon=maxlon + width*buf,
-            #urcrnrlat=maxlat + height*buf/4,
-            projection='robin',
-            resolution='c',
+m = Basemap(llcrnrlon=minlon - width*buf,
+            llcrnrlat=minlat - height*buf*1.5,
+            urcrnrlon=maxlon + width*buf,
+            urcrnrlat=maxlat + height*buf,
+            projection='merc', #'robin',
+            resolution='l',
             #lat_1=minlat, lat_2=maxlat,
-            #lat_0=minlat + height/2,
-            #lon_0=minlon + width/2)
-            lon_0=-180)
+            lat_0=minlat + height/2,
+            lon_0=minlon + width/2,)
+            #lon_0=-180)
 
 m.drawcoastlines()
 m.drawstates()
@@ -478,6 +482,8 @@ m.fillcontinents()
 for f in fly.iterrows():
     f = f[1]
     m.drawgreatcircle(f.startlon, f.startlat, f.endlon, f.endlat, linewidth=3, alpha=0.4, color='b' )
+    m.plot(*m(f.startlon, f.startlat), color='g', alpha=0.8, marker='o')
+    m.plot(*m(f.endlon, f.endlat), color='r', alpha=0.5, marker='o' )
     #pa = Point(m(f.startlon, f.startlat))
     #pb = Point(m(f.endlon, f.endlat))
     #plt.plot([pa.x, pb.x], [pa.y, pb.y], linewidth=4)
@@ -489,7 +495,15 @@ plt.savefig('data/flightdata.png', dpi=300, frameon=False, transparent=True)
 
 # <codecell>
 
-plt.plot()
+flights#.sort(columns='distance')
+
+# <codecell>
+
+ld.ix[253164-5:253164+5]
+
+# <codecell>
+
+flights.ix[26,'index']
 
 # <codecell>
 
