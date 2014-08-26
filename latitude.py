@@ -99,6 +99,10 @@ ld['timestamp'] = ld['timestamp'].map(lambda x: float(x)/1000)
 ld['datetime'] = ld.timestamp.map(datetime.datetime.fromtimestamp)
 ld = ld[ld.timestamp > 1374303600.0] #time since Jul. 20, 2013 when data reporting increased
 ld = ld[ld.accuracy < 1000] #Ignore locations with location estimates over 1000m?
+ld.reset_index(inplace=True)
+
+# <codecell>
+
 
 # <headingcell level=2>
 
@@ -358,67 +362,40 @@ plt.show()
 
 # <codecell>
 
-def distance_on_unit_sphere(lat1, long1, lat2, long2):
-    import math
-    # http://www.johndcook.com/python_longitude_latitude.html
-    # Convert latitude and longitude to 
-    # spherical coordinates in radians.
-    degrees_to_radians = math.pi/180.0  
-    # phi = 90 - latitude
-    phi1 = (90.0 - lat1)*degrees_to_radians
-    phi2 = (90.0 - lat2)*degrees_to_radians
-    # theta = longitude
-    theta1 = long1*degrees_to_radians
-    theta2 = long2*degrees_to_radians
-        
-    # Compute spherical distance from spherical coordinates.
-    # For two locations in spherical coordinates 
-    # (1, theta, phi) and (1, theta, phi)
-    # cosine( arc length ) = 
-    #    sin phi sin phi' cos(theta-theta') + cos phi cos phi'
-    # distance = rho * arc length
-    
-    cos = (math.sin(phi1)*math.sin(phi2)*math.cos(theta1 - theta2) + 
-           math.cos(phi1)*math.cos(phi2))
-    arc = math.acos( cos )
-
-    # Remember to multiply arc by the radius of the earth 
-    # in your favorite set of units to get length.
-    return arc
-
-
-# <codecell>
-
 degrees_to_radians = np.pi/180.0 
 ld['phi'] = (90.0 - ld.latitude) * degrees_to_radians 
-ld['theta'] = ld.latitude * degrees_to_radians
+ld['theta'] = ld.longitude * degrees_to_radians
 
 # <codecell>
 
 ld['distance'] = np.arccos( 
     np.sin(ld.phi)*np.sin(ld.phi.shift(-1)) * np.cos(ld.theta - ld.theta.shift(-1)) + 
     np.cos(ld.phi)*np.cos(ld.phi.shift(-1))
-    ) * 6378100 # radius of earth in meters
+    ) * 6378.100 # radius of earth in km
 
-ld['speed'] = ld.distance/(ld.timestamp - ld.timestamp.shift(-1))/1000.*3600
-fastindex = ld[(ld.speed > 300 and ld.distance > 100000.)].index
+ld['speed'] = ld.distance/(ld.timestamp - ld.timestamp.shift(-1))*3600
+travelindex = ld[(ld['speed'] > 10) & (ld['distance'] > 300.)].index
+print "Found %s instances of flights"%len(travelindex)
 
 # <codecell>
 
 
-idx = 0
-pts = ld.ix[fastindex[idx]:fastindex[idx]+1]
+travel = 20
+idx = travelindex[travel]
+pts = ld.ix[idx:idx+1]
 
-a = ld.ix[fastindex[idx]]
-b = ld.ix[fastindex[idx]+1]
+a = pts.iloc[0]
+b = pts.iloc[1]
 #a = pts.iloc[0]
 
 print a.latitude,",", a.longitude
 print b.latitude,",", b.longitude
+print pts.datetime
+print pts.distance
 
 fig = plt.figure(figsize=(18,12))
 
-buf = .5
+buf = .3
 width = pts.longitude.ptp()
 height = pts.latitude.ptp()
 
@@ -426,14 +403,14 @@ m = Basemap(llcrnrlon=pts.longitude.min() - width*buf,
             llcrnrlat=pts.latitude.min() - height*buf,
             urcrnrlon=pts.longitude.max() + width*buf,
             urcrnrlat=pts.latitude.max() + height*buf,
-            projection='merc',
-            resolution='c',
+            projection='tmerc',
+            resolution='l',
             lat_0=pts.latitude.mean(),
             lon_0=pts.longitude.mean())
 
 m.drawcoastlines()
 m.drawstates()
-#m.drawcountries()
+m.drawcountries()
 
 """
 out = m.readshapefile(shapefilename, 'seattle', drawbounds=True, color='none', zorder=2)
@@ -452,7 +429,34 @@ plt.plot([pa.x, pb.x], [pa.y, pb.y], 'b.-')
 
 # <codecell>
 
-pts
+flights = []
+for idx in travelindex:
+    
+
+# <codecell>
+
+# Make DataFrame of Flights taken with new columns: beginlat, beginlon, endlat, endlon, begin, end, distance, speed
+
+# <codecell>
+
+travelindex+1
+
+# <codecell>
+
+flights = pd.DataFrame(data={'endlat':ld.ix[travelindex].latitude,
+                             'endlon':ld.ix[travelindex].longitude,
+                             'enddatetime':ld.ix[travelindex].datetime,
+                             'distance':ld.ix[travelindex].distance,
+                             'speed':ld.ix[travelindex].speed,
+                             },
+                       ).reset_index()
+flights['startlat'] = ld.ix[travelindex+1].latitude.reset_index(drop=True)
+flights['startlon'] = ld.ix[travelindex+1].longitude.reset_index(drop=True)
+flights['startdatetime'] = ld.ix[travelindex+1].datetime.reset_index(drop=True)
+flights
+
+# <codecell>
+
 
 # <codecell>
 
