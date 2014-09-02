@@ -8,10 +8,10 @@
 # <markdowncell>
 
 # ### To Do - make this a narrative fitting of a blog
-# 1. Plot the chloropleth of neighborhoods
+# 1. ~~Plot the chloropleth of neighborhoods~~
 # 2. Remove time at work and home from data and re-plot
-# 3. Find farthest point traveled
-# 4. Calculate number of flights taken
+# 3. ~~Find farthest point traveled~~
+# 4. ~~Calculate number of flights taken~~
 # 
 #     
 
@@ -36,11 +36,11 @@ import helpers
 # <codecell>
 
 def distance_on_unit_sphere(lat1, long1, lat2, long2):
-    import math
+    
     # http://www.johndcook.com/python_longitude_latitude.html
     # Convert latitude and longitude to 
     # spherical coordinates in radians.
-    degrees_to_radians = math.pi/180.0  
+    degrees_to_radians = np.pi/180.0  
     # phi = 90 - latitude
     phi1 = (90.0 - lat1)*degrees_to_radians
     phi2 = (90.0 - lat2)*degrees_to_radians
@@ -55,9 +55,9 @@ def distance_on_unit_sphere(lat1, long1, lat2, long2):
     #    sin phi sin phi' cos(theta-theta') + cos phi cos phi'
     # distance = rho * arc length
     
-    cos = (math.sin(phi1)*math.sin(phi2)*math.cos(theta1 - theta2) + 
-           math.cos(phi1)*math.cos(phi2))
-    arc = math.acos( cos )
+    cos = (np.sin(phi1)*np.sin(phi2)*np.cos(theta1 - theta2) + 
+           np.cos(phi1)*np.cos(phi2))
+    arc = np.arccos( cos )
 
     # Remember to multiply arc by the radius of the earth 
     # in your favorite set of units to get length.
@@ -129,7 +129,7 @@ ld['timestamp'] = ld['timestamp'].map(lambda x: float(x)/1000)
 ld['datetime'] = ld.timestamp.map(datetime.datetime.fromtimestamp)
 ld = ld[ld.timestamp > 1374303600.0] #time since Jul. 20, 2013 when data reporting increased
 ld = ld[ld.accuracy < 1000] #Ignore locations with location estimates over 1000m?
-ld.reset_index(inplace=True)
+ld.reset_index(drop=True, inplace=True)
 
 # <headingcell level=2>
 
@@ -202,6 +202,10 @@ df_map['area_km'] = df_map['area_m'] / 100000
 # <codecell>
 
 # Create Point objects in map coordinates from dataframe lon and lat values
+#ld['distfromhome'] = distance_on_unit_sphere(ld.latitude, ld.longitude, 47.663794, -122.335812)*6367.1
+#ld['distfromwork'] = distance_on_unit_sphere(ld.latitude, ld.longitude, 47.639906, -122.378381)*6367.1
+#ld = ld[(ld.distfromhome > 0.3) & (ld.distfromwork > 0.5)].reset_index(drop=True)
+
 map_points = pd.Series([Point(m(mapped_x, mapped_y)) for mapped_x, mapped_y in zip(ld['longitude'], ld['latitude'])])
 
 all_points = MultiPoint(list(map_points.values))
@@ -376,7 +380,7 @@ plt.title("Latitude Location History - Since 7/20/13")
 #plt.tight_layout()
 # this will set the image width to 722px at 100dpi
 #fig.set_size_inches(7., 10.5)
-plt.savefig('data/location_history_7_20_13.png', dpi=300, frameon=False, transparent=True)
+plt.savefig('data/hexbin.png', dpi=300, frameon=False, transparent=True)
 
 helpers.toc()
 
@@ -393,8 +397,6 @@ degrees_to_radians = np.pi/180.0
 ld['phi'] = (90.0 - ld.latitude) * degrees_to_radians 
 ld['theta'] = ld.longitude * degrees_to_radians
 
-# <codecell>
-
 ld['distance'] = np.arccos( 
     np.sin(ld.phi)*np.sin(ld.phi.shift(-1)) * np.cos(ld.theta - ld.theta.shift(-1)) + 
     np.cos(ld.phi)*np.cos(ld.phi.shift(-1))
@@ -403,7 +405,7 @@ ld['distance'] = np.arccos(
 ld['speed'] = ld.distance/(ld.timestamp - ld.timestamp.shift(-1))*3600
 
 # Identify potential flights
-travelindex = ld[(ld['speed'] > 10) & (ld['distance'] > 300.)].index
+travelindex = ld[(ld['speed'] > 10) & (ld['distance'] > 80.)].index
 print "Found %s instances of flights"%len(travelindex)
 
 # <codecell>
@@ -439,13 +441,15 @@ for cut in cuts:
                                                        flights.ix[idx].endlon)*6378.1
 
 flights = flights.drop(f.index).reset_index(drop=True)
-    
+flights = flights[flights.distance > 200].reset_index(drop=True)
 
 # <codecell>
 
 fig = plt.figure(figsize=(18,12))
 
-fly = flights#.ix[12]
+#fly = flights[(flights.startlon < 0) & (flights.endlon < 0)]# Western Hemisphere Flights
+fly = flights[(flights.startlon > 0) & (flights.endlon > 0)] # Eastern Hemisphere Flights
+#fly = flights # All flights. Need to use Robin projection w/ center as -180 as 2 cross 180/-180 Lon
 
 buf = .3
 minlat = np.min([fly.endlat.min(), fly.startlat.min()])
@@ -456,16 +460,16 @@ width = maxlon - minlon
 height = maxlat - minlat
 
 
-m = Basemap(#llcrnrlon=minlon - width*buf,
-            #llcrnrlat=minlat - height*buf*4,
-            #urcrnrlon=maxlon + width*buf,
-            #urcrnrlat=maxlat + height*buf/4,
-            projection='robin',
-            resolution='c',
+m = Basemap(llcrnrlon=minlon - width*buf,
+            llcrnrlat=minlat - height*buf*1.5,
+            urcrnrlon=maxlon + width*buf,
+            urcrnrlat=maxlat + height*buf,
+            projection='merc', #'robin',
+            resolution='l',
             #lat_1=minlat, lat_2=maxlat,
-            #lat_0=minlat + height/2,
-            #lon_0=minlon + width/2)
-            lon_0=-180)
+            lat_0=minlat + height/2,
+            lon_0=minlon + width/2,)
+            #lon_0=-180)
 
 m.drawcoastlines()
 m.drawstates()
@@ -478,6 +482,8 @@ m.fillcontinents()
 for f in fly.iterrows():
     f = f[1]
     m.drawgreatcircle(f.startlon, f.startlat, f.endlon, f.endlat, linewidth=3, alpha=0.4, color='b' )
+    m.plot(*m(f.startlon, f.startlat), color='g', alpha=0.8, marker='o')
+    m.plot(*m(f.endlon, f.endlat), color='r', alpha=0.5, marker='o' )
     #pa = Point(m(f.startlon, f.startlat))
     #pb = Point(m(f.endlon, f.endlat))
     #plt.plot([pa.x, pb.x], [pa.y, pb.y], linewidth=4)
@@ -489,7 +495,15 @@ plt.savefig('data/flightdata.png', dpi=300, frameon=False, transparent=True)
 
 # <codecell>
 
-plt.plot()
+flights.distance.sum()
+
+# <codecell>
+
+ld.ix[253164-5:253164+5]
+
+# <codecell>
+
+flights.ix[26,'index']
 
 # <codecell>
 
