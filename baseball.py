@@ -20,12 +20,16 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import re
 import datetime
+import matplotlib
 #import wolframalpha as wa
 
 # <codecell>
 
 # Some payroll data from http://www.baseballchronology.com/Baseball/Years/1977
-xl_file = pd.ExcelFile(r'C:\Users\Tyler\Google Drive\DOCUMENTS\Blog Data\BaseballStats.xlsx')
+try:
+    xl_file = pd.ExcelFile(r'C:\Users\Tyler\Google Drive\DOCUMENTS\Blog Data\BaseballStats.xlsx')
+except:
+    xl_file = pd.ExcelFile(r'C:\Users\thartley\Desktop\BaseballStats.xlsx')
 salaries = xl_file.parse(sheetname='Salaries')
 allstats = xl_file.parse(sheetname='Statistics')
 
@@ -109,13 +113,9 @@ textbook.index = textbooks.month
 
 # <codecell>
 
-cm = plt.get_cmap('Blues')
-cm(.5)
-
-# <codecell>
-
 fig = plt.figure(figsize=(12,8))
 plt.rc('font', size=16)
+cm = plt.get_cmap('Blues')
 ax = fig.add_subplot(111, axisbg='#E0E0E0')
 linewidth=3
 alpha = 0.8
@@ -146,26 +146,6 @@ plt.savefig(r'C:\Users\Tyler\Desktop\foo.png', dpi=300)
 
 # <codecell>
 
-nominal.plot?
-
-# <codecell>
-
-"""
-wolfram_api_id = "G3Y8VX-E83L2YWY59"
-client = wa.Client(wolfram_api_id)
-
-res = client.query('{0} {1} dollars in 2013 dollars'.format(1000, 1977))
-
-for r in res.results:
-    price =  float(re.findall('^\$([\d.]+)', r.text)[0])
-    break
-"""
-
-# <codecell>
-
-fig = plt.figure(figsize=(12,8))
-plt.plot(league_salary.year, league_salary.salary)
-plt.plot()
 
 # <headingcell level=1>
 
@@ -182,20 +162,48 @@ stats = stats.groupby('year').apply(add_prop)
 # <codecell>
 
 byteam = stats.groupby(by='team')
+
+# <codecell>
+
+plt.rc('font', size=16)
+cm = plt.get_cmap('Blues')
+fig = plt.figure(figsize=(12,8))
+ax = fig.add_subplot(111, axisbg='#E0E0E0')
+
 for i, g in byteam:
-    color = 'k'
-    zorder = None
-    alpha = 0.5
+    kwargs = {'color':cm(0.8), 'zorder':1,
+            'alpha':0.4, 'linewidth':3,
+            'label':None
+            }
     if 'Yankees' in i:
-        color = 'k'
-        zorder = 0
-        alpha = 1
+        kwargs = {'color':'k', 'zorder':3,
+            'alpha':1, 'linewidth':4,
+            'label':'Yankees'
+            }
+        label = 'Yankees'
     if 'Red Sox' in i:
-        color = 'r'
-        zorder = 1
-        alpha = 1
+        kwargs = {'color':'r', 'zorder':2,
+            'alpha':1, 'linewidth':4,
+            'label':'Red Sox'
+            }
+    if 'Marlins' in i:
+        kwargs = {'color':'#005C5C', 'zorder':2,
+            'alpha':1, 'linewidth':4,
+            'label':'Marlins'
+            }
     
-    plt.plot(g.year, g.frac_salary, color=color, alpha=alpha, linewidth=3, zorder=zorder)
+    plt.plot(g.year, g.frac_salary, **kwargs)
+    
+ax.grid(axis='y', linewidth=2, ls='-', color='#ffffff')
+ax.set_axisbelow(True)
+ax.set_xlabel('Year', fontsize=20)
+ax.set_ylabel('% Total League Salary', fontsize=20)
+formatter = matplotlib.ticker.FormatStrFormatter('%0.0f%%')
+ax.yaxis.set_major_formatter(formatter)
+ax.set_title("Per-Team Salary since 1977", fontdict={'size':24, 'fontweight':'bold'})
+ax.legend(loc='upper left')
+
+#plt.savefig(r'C:\Users\Tyler\Desktop\foo.png', dpi=300)
 
 # <codecell>
 
