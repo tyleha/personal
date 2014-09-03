@@ -19,7 +19,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import re
-import wolframalpha as wa
+import datetime
+#import wolframalpha as wa
 
 # <codecell>
 
@@ -79,26 +80,73 @@ stats = stats[stats.year > 1976].reset_index(drop=True)
 # <codecell>
 
 league_salary = stats.groupby('year').salary.sum()
+league_salary.index = league_salary.index.map(lambda x: datetime.datetime(x, 1, 1, 0, 0, 0))
 
 # <codecell>
 
-ff = pd.ExcelFile(r'C:\Users\thartley\Documents\Dropbox\prices.xlsx')
+try:
+    ff = pd.ExcelFile(r'C:\Users\thartley\Documents\Dropbox\prices.xlsx')
+except:
+    ff = pd.ExcelFile('C:\Users\Tyler\Documents\My Dropbox\prices.xlsx')
+    nd = pd.ExcelFile(r'C:\Users\Tyler\Desktop\nasdaq.xlsx')
+                      
 incomes = ff.parse('household')
-incomes = incomes[incomes.year > 1976].reset_index(drop=True)
+incomes = incomes[incomes.year > 1976].sort(columns='year').reset_index(drop=True)
+
 textbooks = ff.parse('textbooks')
-textbooks = pd.DataFrame([textbooks.ix[i] for i in range(0, len(textbooks), 12)])
+#textbooks = pd.DataFrame([textbooks.ix[i] for i in range(0, len(textbooks), 12)])
 textbooks['year'] = textbooks.month.map(lambda x: x.year)
 textbooks = textbooks[textbooks.year > 1976].reset_index(drop=True)
 
+nasdaq = nd.parse('table (2)').sort(columns='Date')
+nasdaq.index = nasdaq.Date
+nasdaq = nasdaq.Close
+
+nominal = incomes.nominal
+nominal.index = incomes.year.map(lambda x: datetime.datetime(x, 1, 1, 0, 0, 0))
+textbook = textbooks.CPI
+textbook.index = textbooks.month
+
 # <codecell>
 
-plt.figure()
-plt.plot(incomes.year, incomes.nominal)
-plt.plot(textbooks.year, textbooks.CPI*(incomes.nominal.iloc[-1]/textbooks.CPI[0]))
+cm = plt.get_cmap('Blues')
+cm(.5)
 
 # <codecell>
 
-incomes.nominal.iloc[-1]
+fig = plt.figure(figsize=(12,8))
+plt.rc('font', size=16)
+ax = fig.add_subplot(111, axisbg='#E0E0E0')
+linewidth=3
+alpha = 0.8
+num_lines = 4
+
+(nominal/nominal[0]).plot(color=cm(2./num_lines), linewidth=linewidth, label='Median US Income', alpha=alpha)
+(textbook/textbook[0]).plot(color=cm(3./num_lines), linewidth=linewidth, style='--', label='College Textbooks', alpha=alpha)
+(nasdaq/nasdaq[0]).plot(color=cm(4./num_lines), linewidth=linewidth, label='NASDAQ', alpha=alpha)
+(league_salary/float(league_salary[0])).plot(color='g', linewidth=4, marker='', label='MLB Salaries')
+
+#http://www.etforecasts.com/products/ES_pcww1203.htm
+leg = plt.legend(loc='upper left')
+ax.grid(axis='y', linewidth=2, ls='-', color='#ffffff')
+ax.grid(axis='x')
+ax.set_axisbelow(True)
+
+#ax.tick_params(labelsize=16)
+ax.set_xlabel('Year', fontsize=20)
+ax.set_ylabel('Fold Change', fontsize=20)
+
+ax.set_title("Total MLB Salaries since 1977 CBA", 
+             fontdict={'size':24, 'fontweight':'bold'})
+#ax.set_position([0, 0.2, 1, 0.8])
+
+ax.text(80, -15.0, 'Source: stuff\nmorestuff\n   Even more stuffff')
+plt.tight_layout()
+plt.savefig(r'C:\Users\Tyler\Desktop\foo.png', dpi=300)
+
+# <codecell>
+
+nominal.plot?
 
 # <codecell>
 
