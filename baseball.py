@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt
 import re
 import datetime
 import matplotlib
+import statsmodels.api as sm
 #import wolframalpha as wa
 
 # <codecell>
@@ -72,10 +73,6 @@ def team_groups(name):
 
 stats.team = stats.team.map(team_groups)
 
-# <headingcell level=1>
-
-# 1. Total League Salary
-
 # <codecell>
 
 # Let's just look at years where we have salary info
@@ -85,6 +82,10 @@ stats = stats[stats.year > 1976].reset_index(drop=True)
 
 league_salary = stats.groupby('year').salary.sum()
 league_salary.index = league_salary.index.map(lambda x: datetime.datetime(x, 1, 1, 0, 0, 0))
+
+# <headingcell level=1>
+
+# 1. Total League Salary
 
 # <codecell>
 
@@ -144,9 +145,6 @@ ax.text(80, -15.0, 'Source: stuff\nmorestuff\n   Even more stuffff')
 plt.tight_layout()
 plt.savefig(r'C:\Users\Tyler\Desktop\foo.png', dpi=300)
 
-# <codecell>
-
-
 # <headingcell level=1>
 
 # 2. Team Salary over Time
@@ -158,6 +156,18 @@ def add_prop(group):
     group['frac_salary'] = group.salary/group.salary.sum()*100
     return group
 stats = stats.groupby('year').apply(add_prop)
+
+# Find the team rank in salary for each year
+def add_rank(group):
+    group['rank_salary'] = group.salary.rank(ascending=True)
+    return group
+stats = stats.groupby('year').apply(add_rank)
+
+# Compute the number of standard deviations above the mean
+def add_median(group):
+    group['std_salary'] = (group.salary - group.salary.mean())/group.salary.std()
+    return group
+stats = stats.groupby('year').apply(add_median)
 
 # <codecell>
 
@@ -192,7 +202,7 @@ for i, g in byteam:
             'label':'Marlins'
             }
     
-    plt.plot(g.year, g.frac_salary, **kwargs)
+    plt.plot(g.year, g.std_salary, **kwargs)
     
 ax.grid(axis='y', linewidth=2, ls='-', color='#ffffff')
 ax.set_axisbelow(True)
@@ -205,8 +215,47 @@ ax.legend(loc='upper left')
 
 #plt.savefig(r'C:\Users\Tyler\Desktop\foo.png', dpi=300)
 
+# <headingcell level=1>
+
+# 3. Wins vs Cost
+
 # <codecell>
 
+# Normalize salary to fraction of total money spent that year
+def add_prop(group):
+    group['frac_salary'] = group.salary/group.salary.sum()*100
+    return group
+stats = stats.groupby('year').apply(add_prop)
+
+# Compute the number of medians above the median each team's salary is
+def add_median(group):
+    group['median_salary'] = group.salary/group.salary.median()
+    return group
+stats = stats.groupby('year').apply(add_median)
+
+# Compute the number of standard deviations above the mean
+def add_median(group):
+    group['std_salary'] = (group.salary - group.salary.mean())/group.salary.std()
+    return group
+stats = stats.groupby('year').apply(add_median)
+
+# <codecell>
+
+metric = 'std_salary'
+
+x = stats[metric]
+x = sm.add_constant(x)
+est = sm.OLS(stats['w'], x)
+
+res = est.fit()
+
+stats.plot(x=metric, y='w', kind='scatter')
+fakedata = np.arange(stats[metric].min(), stats[metric].max(), 1)
+fakedata = sm.add_constant(fakedata)
+y_hat = res.predict(fakedata)
+plt.plot(fakedata[:,1], y_hat, 'r')
+
+res.summary()
 
 # <codecell>
 
