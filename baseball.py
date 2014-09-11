@@ -196,10 +196,10 @@ for i, g in byteam:
             'alpha':1, 'linewidth':4,
             'label':'Red Sox'
             }
-    if 'Marlins' in i:
+    if 'Oakland' in i:
         kwargs = {'color':'#005C5C', 'zorder':2,
             'alpha':1, 'linewidth':4,
-            'label':'Marlins'
+            'label':'A\'s'
             }
     
     plt.plot(g.year, g.std_salary, **kwargs)
@@ -242,20 +242,33 @@ stats = stats.groupby('year').apply(add_median)
 # <codecell>
 
 metric = 'std_salary'
+step = 5
+for start_year in range(1975, 2014, step):
 
-x = stats[metric]
-x = sm.add_constant(x)
-est = sm.OLS(stats['w'], x)
+    decade = stats[(stats.year > start_year) & (stats.year < start_year+step)]
+    x = decade[metric].as_matrix()
+    x = sm.add_constant(x)
+    est = sm.OLS(decade['w'], x)
 
-res = est.fit()
+    res = est.fit()
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    decade.plot(x=metric, y='w', kind='scatter', ax=ax, )
+    decade[decade.team.str.contains('Athletics')].plot(x=metric, y='w', kind='scatter', color='y', 
+                                                       ax=ax)
+    decade[decade.team.str.contains('Yankees')].plot(x=metric, y='w', kind='scatter', color='k', 
+                                                     ax=ax)
+    fakedata = np.arange(decade[metric].min(), decade[metric].max(), 0.2)
+    fakedata = sm.add_constant(fakedata)
+    y_hat = res.predict(fakedata)
+    plt.plot(fakedata[:,1], y_hat, 'r')
+    plt.title("%s to %s = %s"%(start_year, start_year+step-1, res.params[1]))
 
-stats.plot(x=metric, y='w', kind='scatter')
-fakedata = np.arange(stats[metric].min(), stats[metric].max(), 1)
-fakedata = sm.add_constant(fakedata)
-y_hat = res.predict(fakedata)
-plt.plot(fakedata[:,1], y_hat, 'r')
+    #res.summary()
 
-res.summary()
+# <codecell>
+
 
 # <codecell>
 

@@ -125,7 +125,7 @@ next_url=None
 # <codecell>
 
 
-results, next_url= search_advanced(api, tag_primary='', caption=[''], count=50, max_iters=500, next=next_url)
+results, next_url= search_advanced(api, tag_primary='twins', caption=['cast'], count=30, max_iters=500, next=next_url)
 
 # <codecell>
 
