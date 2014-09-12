@@ -35,6 +35,9 @@ salaries = xl_file.parse(sheetname='Salaries')
 allstats = xl_file.parse(sheetname='Statistics')
 
 allstats.Team = allstats.Team.map(lambda x: x.replace(u'\xa0', u" ")) #ascii issue; thanks, excel
+allstats.Playoffs.fillna('None', inplace=True)
+allstats.Playoffs = allstats.Playoffs.map(lambda x: x.replace(u'\xa0', u" "))
+
 
 allstats = pd.merge(allstats, salaries, how='left')
 # let's play with a subset of data anyways
@@ -242,10 +245,10 @@ stats = stats.groupby('year').apply(add_median)
 # <codecell>
 
 metric = 'std_salary'
-step = 5
+step = 20
 for start_year in range(1975, 2014, step):
 
-    decade = stats[(stats.year > start_year) & (stats.year < start_year+step)]
+    decade = stats[(stats.year >= start_year) & (stats.year < start_year+step)]
     x = decade[metric].as_matrix()
     x = sm.add_constant(x)
     est = sm.OLS(decade['w'], x)
@@ -254,21 +257,41 @@ for start_year in range(1975, 2014, step):
     
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    decade.plot(x=metric, y='w', kind='scatter', ax=ax, )
-    decade[decade.team.str.contains('Athletics')].plot(x=metric, y='w', kind='scatter', color='y', 
-                                                       ax=ax)
-    decade[decade.team.str.contains('Yankees')].plot(x=metric, y='w', kind='scatter', color='k', 
-                                                     ax=ax)
+    plt.scatter(decade[metric], decade.w, s=40, alpha=0.5)
+    
+    #decade.plot(x=metric, y='w', kind='scatter', ax=ax, )
+    team = decade[decade.team.str.contains('Athletics')]
+    plt.scatter(team[metric], team.w, c='y', s=80)
+    
+    #decade[decade.team.str.contains('Athletics')].plot(x=metric, y='w', color='y', style='.', markersize=30, ax=ax)
+    team = decade[decade.team.str.contains('Yankees')]
+    plt.scatter(team[metric], team.w, c='k', s=80)
+
     fakedata = np.arange(decade[metric].min(), decade[metric].max(), 0.2)
     fakedata = sm.add_constant(fakedata)
     y_hat = res.predict(fakedata)
-    plt.plot(fakedata[:,1], y_hat, 'r')
-    plt.title("%s to %s = %s"%(start_year, start_year+step-1, res.params[1]))
-
+    plt.plot(fakedata[:,1], y_hat, c='r')
+    plt.title("%s to %s = %0.2f"%(start_year, start_year+step-1, res.params[1]))
+    
     #res.summary()
+    
 
 # <codecell>
 
+
+def renum_playoffs(playoff):
+    if 'None' in playoff:
+        return 0
+    if 'NLWC' in playoff or 'ALWC' in playoff or 'LDS' in playoff:
+        return 1
+    elif 'ALCS' in playoff or 'NLCS' in playoff:
+        return 2
+    elif 'Lost WS' in playoff:
+        return 3
+    elif 'Won' in playoff:
+        return 4
+    
+stats.playoffs = stats.playoffs.map(renum_playoffs)
 
 # <codecell>
 
