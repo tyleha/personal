@@ -41,7 +41,7 @@ allstats.Playoffs = allstats.Playoffs.map(lambda x: x.replace(u'\xa0', u" "))
 
 allstats = pd.merge(allstats, salaries, how='left')
 # let's play with a subset of data anyways
-stats = allstats.reindex(columns=['Team', 'Year', 'W', 'Salary', 'Playoffs'])
+stats = allstats.reindex(columns=['Team', 'Year', 'W', 'L', 'Salary', 'Playoffs'])
 stats.columns = [c.lower() for c in stats.columns]
 del salaries # clear up some mem
 del allstats # clear up some mem
@@ -242,42 +242,82 @@ def add_median(group):
     return group
 stats = stats.groupby('year').apply(add_median)
 
+# Add Win%
+stats['wpct'] = stats.w.astype(float)/(stats.w + stats.l)
+
 # <codecell>
 
 metric = 'std_salary'
-step = 20
+step = 10
 for start_year in range(1975, 2014, step):
 
     decade = stats[(stats.year >= start_year) & (stats.year < start_year+step)]
     x = decade[metric].as_matrix()
     x = sm.add_constant(x)
-    est = sm.OLS(decade['w'], x)
+    est = sm.OLS(decade['wpct'], x)
 
     res = est.fit()
     
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    plt.scatter(decade[metric], decade.w, s=40, alpha=0.5)
+    plt.scatter(decade[metric], decade.wpct, s=40, alpha=0.5)
     
     #decade.plot(x=metric, y='w', kind='scatter', ax=ax, )
     team = decade[decade.team.str.contains('Athletics')]
-    plt.scatter(team[metric], team.w, c='y', s=80)
+    plt.scatter(team[metric], team.wpct, c='y', s=80)
     
     #decade[decade.team.str.contains('Athletics')].plot(x=metric, y='w', color='y', style='.', markersize=30, ax=ax)
     team = decade[decade.team.str.contains('Yankees')]
-    plt.scatter(team[metric], team.w, c='k', s=80)
+    plt.scatter(team[metric], team.wpct, c='k', s=80)
 
     fakedata = np.arange(decade[metric].min(), decade[metric].max(), 0.2)
     fakedata = sm.add_constant(fakedata)
     y_hat = res.predict(fakedata)
     plt.plot(fakedata[:,1], y_hat, c='r')
-    plt.title("%s to %s = %0.2f"%(start_year, start_year+step-1, res.params[1]))
+    plt.title("%s to %s = %0.3f"%(start_year, start_year+step-1, res.params[1]))
     
     #res.summary()
     
 
+# <headingcell level=2>
+
+# Heatmap of wins vs cost
+
 # <codecell>
 
+heatmap, xedges, yedges = np.histogram2d(stats.std_salary, stats.playoffs)
+
+# <codecell>
+
+print xedges, yedges
+
+# <codecell>
+
+fig = plt.figure(figsize=(10,8))
+#plt.imshow(heatmap, extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], aspect='auto', 
+           #interpolation='None')
+#fig = plt.figure()
+c = stats.playoffs > 0
+out = plt.hexbin(stats.std_salary, stats.wpct, C=c, gridsize=15, cmap=plt.cm.YlOrRd, reduce_C_function=np.sum)
+plt.axis('normal')
+plt.colorbar()
+plt.title("Number of WS Winners")
+plt.xlabel("Std from the mean")
+plt.ylabel("Win Percenage")
+
+# <codecell>
+
+stats[(stats.std_salary > 2) & (stats.wpct > .54)]
+
+# <codecell>
+
+plt.cm.
+
+# <headingcell level=2>
+
+# Percent of teams in each std group to make playoffs/win WS
+
+# <codecell>
 
 def renum_playoffs(playoff):
     if 'None' in playoff:
@@ -295,4 +335,17 @@ stats.playoffs = stats.playoffs.map(renum_playoffs)
 
 # <codecell>
 
+# find num of teams in each bin group
+al, locs = np.histogram(stats.std_salary, bins=range(-2,5))
+po, locs = np.histogram(stats[stats.playoffs > 0].std_salary, bins=range(-2,5))
+
+plt.bar(locs[:-1]-.5, np.array(po).astype(float)/al, 0.8)
+
+# <headingcell level=2>
+
+# Percent of teams in each quartile to make playoffs/win WS
+
+# <codecell>
+
+stats.std_salary.quantile(.25)
 
