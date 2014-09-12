@@ -154,12 +154,6 @@ plt.savefig(r'C:\Users\Tyler\Desktop\foo.png', dpi=300)
 
 # <codecell>
 
-# Normalize salary to fraction of total money spent that year
-def add_prop(group):
-    group['frac_salary'] = group.salary/group.salary.sum()*100
-    return group
-stats = stats.groupby('year').apply(add_prop)
-
 # Find the team rank in salary for each year
 def add_rank(group):
     group['rank_salary'] = group.salary.rank(ascending=True)
@@ -172,9 +166,25 @@ def add_median(group):
     return group
 stats = stats.groupby('year').apply(add_median)
 
+# Compute the MAD (median absolute deviation)
+def add_mad(group):
+    median = group.salary.median()
+    mad = (group.salary - median).abs().median()*1.4826
+    group['MAD'] = (group.salary - median)/mad
+    return group
+stats = stats.groupby('year').apply(add_mad)
+
 # <codecell>
 
-byteam = stats.groupby(by='team')
+stats.MAD
+
+# <codecell>
+
+(xx - xx.median()).abs().median()
+
+# <codecell>
+
+(stats.salary - stats.salary.median()).abs().median()
 
 # <codecell>
 
@@ -281,41 +291,40 @@ for start_year in range(1975, 2014, step):
 
 # <headingcell level=2>
 
-# Heatmap of wins vs cost
+# Bar graph of average wins for each quartile
 
 # <codecell>
 
-heatmap, xedges, yedges = np.histogram2d(stats.std_salary, stats.playoffs)
+stats['quartile'] = pd.qcut(stats.std_salary, q=[0, .25, .5, .75, 1.], labels=['1', '2', '3', '4'])
 
 # <codecell>
 
-print xedges, yedges
+quartiles = stats.groupby('quartile')
+quartiles.playoffs.value_counts()
 
 # <codecell>
 
-fig = plt.figure(figsize=(10,8))
-#plt.imshow(heatmap, extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], aspect='auto', 
-           #interpolation='None')
-#fig = plt.figure()
-c = stats.playoffs > 0
-out = plt.hexbin(stats.std_salary, stats.wpct, C=c, gridsize=15, cmap=plt.cm.YlOrRd, reduce_C_function=np.sum)
-plt.axis('normal')
-plt.colorbar()
-plt.title("Number of WS Winners")
-plt.xlabel("Std from the mean")
-plt.ylabel("Win Percenage")
+stats[(stats.quartile =='2' ) & (stats.playoffs == 4)]
 
 # <codecell>
 
-stats[(stats.std_salary > 2) & (stats.wpct > .54)]
+from statsmodels.stats.multicomp import MultiComparison
+salarydata = MultiComparison(stats.w, stats.quartile)
+res = salarydata.tukeyhsd()
+#out = res.plot_simultaneous('1')
 
 # <codecell>
 
-plt.cm.
+stats[stats.year > 1994].boxplot(column='wpct', by='quartile', notch=True)
+
+# <codecell>
+
+#
+quartiles.wpct.mean().plot(kind='bar')
 
 # <headingcell level=2>
 
-# Percent of teams in each std group to make playoffs/win WS
+# Heatmap of wins vs cost
 
 # <codecell>
 
@@ -332,6 +341,24 @@ def renum_playoffs(playoff):
         return 4
     
 stats.playoffs = stats.playoffs.map(renum_playoffs)
+
+# <codecell>
+
+fig = plt.figure(figsize=(10,8))
+#plt.imshow(heatmap, extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], aspect='auto', 
+           #interpolation='None')
+#fig = plt.figure()
+c = stats.playoffs > 3
+out = plt.hexbin(stats.std_salary, stats.wpct, C=c, gridsize=15, cmap=plt.cm.YlOrRd, reduce_C_function=np.sum)
+plt.axis('normal')
+plt.colorbar()
+plt.title("Number of WS Winners")
+plt.xlabel("Std from the mean")
+plt.ylabel("Win Percenage")
+
+# <headingcell level=2>
+
+# Percent of teams in each std group to make playoffs/win WS
 
 # <codecell>
 
