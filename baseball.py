@@ -289,86 +289,42 @@ for start_year in range(1975, 2014, step):
 
 # <codecell>
 
+
+stats = stats[stats.year > 1994]
 stats['quartile'] = pd.qcut(stats.mad_salary, q=[0, .25, .5, .75, 1.], labels=['1', '2', '3', '4'])
+
 quartiles = stats.groupby('quartile')
 
 # <codecell>
 
-from statsmodels.stats.multicomp import MultiComparison
-salarydata = MultiComparison(stats.w, stats.quartile)
-res = salarydata.tukeyhsd()
-#out = res.plot_simultaneous('1')
-
-# <codecell>
-
-stats[stats.year > 1994].boxplot(column='wpct', by='quartile', notch=True)
-
-# <codecell>
-
-f,(ax,ax2) = plt.subplots(2,1,sharex=True)
-ax = quartiles.wpct.mean().plot(kind='bar')
-ax.set_ylim([0.4, 0.6])
-
-d = .015 # how big to make the diagonal lines in axes coordinates
-# arguments to pass plot, just so we don't keep repeating them
-kwargs = dict(transform=ax.transAxes, color='k', clip_on=False)
-ax.plot((-d,+d),(-d,+d), **kwargs)      # top-left diagonal
-ax.plot((1-d,1+d),(-d,+d), **kwargs)    # top-right diagonal
-
-kwargs.update(transform=ax2.transAxes)  # switch to the bottom axes
-ax2.plot((-d,+d),(1-d,1+d), **kwargs)   # bottom-left diagonal
-ax2.plot((1-d,1+d),(1-d,1+d), **kwargs) # bottom-right diagonal
-
-# <codecell>
-
-quartiles.wpct.mean() * 2
-
-# <codecell>
-
-width
-
-# <codecell>
-
-ind + margin
-
-# <codecell>
-
+# Plot the winning % for each quartile as a fancy-ass graph
 import matplotlib.gridspec as gridspec
-fig = plt.figure(figsize=(8,6))
+fig = plt.figure(figsize=(9,7))
 gs = gridspec.GridSpec(2,1, height_ratios=[6,1])
-ax = plt.subplot(gs[0])
-ax2 = plt.subplot(gs[1])
+ax = plt.subplot(gs[0], axisbg='#E0E0E0')
+ax2 = plt.subplot(gs[1], axisbg='#E0E0E0')
 
-margin = 0.1
+margin = 0.15
 width = 1.-2*margin
 ind = np.arange(4)
 xdata = ind + margin
 
-yl = .0
-d = .015 # how big to make the diagonal lines in axes coordinates
-# arguments to pass plot, just so we don't keep repeating them
-kwargs = dict(transform=ax.transAxes, color='k', clip_on=False)
-ax.plot((yl-d,yl+d),(-d,+d), **kwargs)      # top-left diagonal
-ax.plot((1-d,1+d),(-d,+d), **kwargs)    # top-right diagonal
-ax.set_xticks(np.arange(-0.2, 4.))
-
-kwargs.update(transform=ax2.transAxes)  # switch to the bottom axes
-ax2.plot((-d,+d),(1-d*6,1+d*6), **kwargs)   # bottom-left diagonal, multiply by same ratio used in gridspec height
-ax2.plot((1-d,1+d),(1-d*6,1+d*6), **kwargs) # bottom-right diagonal,  multiply by same ratio used in gridspec height
-
 
 pts = quartiles.wpct.mean()
 # plot the same data on both axes
-ax.bar(xdata, pts, width, yerr=quartiles.wpct.std())
-ax2.bar(xdata, pts, width)
-
-
-
+cm = plt.get_cmap('Blues')
+colors = [cm(c) for c in [0.6,0.7,0.8,0.9]]
+out = ax.bar(xdata, pts, width, yerr=quartiles.wpct.std(), color=colors, 
+             error_kw=dict(ecolor='k', lw=1.5, capsize=5, capthick=2))
+out2 = ax2.bar(xdata, pts, width, color=colors)
+    
 # zoom-in / limit the view to different portions of the data
-ax.set_ylim(.4,.6) # outliers only
+ax.set_ylim(.4,.63) # outliers only
 ax2.set_ylim(0,.04) # most of the data
+ax.grid(axis='y', linewidth=2, ls='-', color='#ffffff')
+#ax2.grid(axis='y', linewidth=2, ls='-', color='#ffffff')
+ax.set_axisbelow(True)
 
-"""
 # hide the spines between ax and ax2
 ax.spines['bottom'].set_visible(False)
 ax2.spines['top'].set_visible(False)
@@ -376,16 +332,55 @@ ax.xaxis.tick_top()
 ax.tick_params(labeltop='off') # don't put tick labels at the top
 ax2.xaxis.tick_bottom()
 
-ax2.set_yticks([0.0])
+ax2.set_yticks([0.0, 0.05])
 ax2.set_xticks(ind+0.5)
 ax2.set_xticklabels(['Q1', 'Q2', 'Q3', 'Q4'])
-"""
 
-#plt.tight_layout()
+ax.set_ylabel("Win %", fontsize=20)
+plt.xlabel("Payroll Quartile", fontsize=20)
+ax.set_title("Mean Wins by Payroll Quartile (1977+)", 
+             fontdict={'size':24, 'fontweight':'bold'})
+
+for i, wp in enumerate(pts):
+    ax.text(0.26*(i*3.9+1), 0.41, '%d wins'%(wp*162), fontdict={'color':'w'})
+plt.tight_layout()
 
 # <codecell>
 
-quartiles.playoffs.agg(lambda x: np.mean(x > 0)).plot(kind='bar')
+quartiles.quartile.count()[1]
+
+# <codecell>
+
+# plot liklihood of making the playoffs
+fig = plt.figure(figsize=(9,7))
+ax = fig.add_subplot(111, axisbg='#E0E0E0')
+ax.grid(axis='y', linewidth=2, ls='-', color='#ffffff')
+ax.set_axisbelow(True)
+
+margin = 0.15
+width = 1.-2*margin
+ind = np.arange(4)
+
+cm = plt.get_cmap('Blues')
+colors = [cm(c) for c in [0.6,0.7,0.8,0.9]]
+
+pts = quartiles.playoffs.agg(lambda x: np.sum(x > 0))
+plt.bar(ind+margin, pts, width, color=colors)
+ax.set_xticks(ind+0.5)
+ax.set_xticklabels(['Q1', 'Q2', 'Q3', 'Q4'])
+ax.set_ylim([0, np.max(pts)*1.1])
+
+for i, wp in enumerate(pts):
+    ax.text((ind+margin)[i]+0.25, 3, '%d%%'%(100*float(wp)/quartiles.quartile.count()[1]), fontdict={'color':'w'})
+    
+ax.set_ylabel("Trips to Playoffs", fontsize=20)
+ax.set_xlabel("Payroll Quartile", fontsize=20)
+ax.set_title("Trips to the Playoffs by Quartile (1995+)", 
+             fontdict={'size':24, 'fontweight':'bold'})
+
+# <codecell>
+
+ind
 
 # <headingcell level=1>
 
@@ -440,92 +435,4 @@ plt.bar(locs[:-1]-.5, np.array(po).astype(float)/al, 0.8)
 # <codecell>
 
 stats.std_salary.quantile(.25)
-
-# <codecell>
-
-import IPython
-ip=IPython.get_ipython()
-ip.config.ProfileDir
-
-# <codecell>
-
-groups = [[1.04, 0.96],
-          [1.69, 4.02]]
-for a, b in enumerate(groups):
-    print a
-    print b
-
-# <codecell>
-
-plt.figure(figsize=(7,7), dpi=300)
-
-groups = [1.04, 0.96, 2.2]
-group_labels = ["G1", "G2", "G3"]
-num_items = len(group_labels)
-# This needs to be a numpy range for xdata calculations
-# to work.
-ind = np.arange(num_items)
-
-# Bar graphs expect a total width of "1.0" per group
-# Thus, you should make the sum of the two margins
-# plus the sum of the width for each entry equal 1.0.
-# One way of doing that is shown below. You can make
-# The margins smaller if they're still too big.
-margin = 0.05
-width = (1.-2.*margin)
-
-s = plt.subplot(1,1,1)
-#for num, vals in enumerate(groups):
-#print "plotting: ", groups
-# The position of the xdata must be calculated for each of the two data series
-xdata = ind+margin
-# Removing the "align=center" feature will left align graphs, which is what
-# this method of calculating positions assumes
-gene_rects = plt.bar(xdata, groups, width)
-
-
-# You should no longer need to manually set the plot limit since everything 
-# is scaled to one.
-# Also the ticks should be much simpler now that each group of bars extends from
-# 0.0 to 1.0, 1.0 to 2.0, and so forth and, thus, are centered at 0.5, 1.5, etc.
-s.set_xticks(ind+0.5)
-s.set_xticklabels(group_labels)
-
-# <codecell>
-
-import matplotlib.gridspec as gridspec
-fig = plt.figure(figsize=(8,6))
-gs = gridspec.GridSpec(2,1, height_ratios=[6,1])
-ax = plt.subplot(gs[0])
-ax2 = plt.subplot(gs[1])
-
-margin = 0.1
-width = 1.-2*margin
-ind = np.arange(4)
-xdata = ind + margin
-
-pts = quartiles.wpct.mean()
-# plot the same data on both axes
-
-ax2.bar(xdata, pts, width)
-
-# zoom-in / limit the view to different portions of the data
-
-ax2.set_ylim(0,.04) # most of the data
-
-# hide the spines between ax and ax2
-
-ax2.spines['top'].set_visible(False)
-
-ax2.xaxis.tick_bottom()
-
-ax2.set_yticks([0.0])
-ax2.set_xticks(ind+0.5)
-ax2.set_xticklabels(['Q1', 'Q2', 'Q3', 'Q4'])
-#ax.set_xticks(ind+width/2); ax2.set_xticks(ind+width/2)
-
-
-
-# <codecell>
-
 
