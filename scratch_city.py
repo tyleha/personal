@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 # <nbformat>3.0</nbformat>
 
+# <headingcell level=1>
+
+# 1. Stuff
+
 # <codecell>
 
 from imaplib import IMAP4_SSL
@@ -49,10 +53,6 @@ ids = tyler.search("inbox", '(SENTSINCE {date})'.format(date=interval), True)
 body = '(BODY.PEEK[TEXT])'
 headers = '(BODY.PEEK[HEADER.FIELDS (SUBJECT FROM DATE TO CC)])'
 data = tyler.fetch(ids, headers)
-
-# <codecell>
-
-print data[0]
 
 # <codecell>
 

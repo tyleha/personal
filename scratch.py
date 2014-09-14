@@ -14,4 +14,15 @@ import json
 # <codecell>
 
 json.load(open(r'C:\Users\thartley\Desktop\abc.txt', 'r'))
+for x in xx:
+    stuff
+    stuff
+    
+    
+def foo():
+    pass
+    pass
+
+# <codecell>
+
 
