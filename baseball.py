@@ -29,7 +29,7 @@ plt.rc('font', size=16)
 
 # Some payroll data from http://www.baseballchronology.com/Baseball/Years/1977
 try:
-    xl_file = pd.ExcelFile(r'C:\Users\Tyler\Google Drive\DOCUMENTS\Blog Data\BaseballStats.xlsx')
+    xl_file = pd.ExcelFile(r'C:\Users\Tyler\Google Drive\DOCUMENTS\Blog Data\Baseball Salary\BaseballStats.xlsx')
 except:
     xl_file = pd.ExcelFile(r'C:\Users\thartley\Desktop\BaseballStats.xlsx')
 salaries = xl_file.parse(sheetname='Salaries')
@@ -82,14 +82,14 @@ stats.team = stats.team.map(team_groups)
 # Let's just look at years where we have salary info
 stats = stats[stats.year > 1976].reset_index(drop=True)
 
+# <headingcell level=1>
+
+# Total League Salary
+
 # <codecell>
 
 league_salary = stats.groupby('year').salary.sum()
 league_salary.index = league_salary.index.map(lambda x: datetime.datetime(x, 1, 1, 0, 0, 0))
-
-# <headingcell level=1>
-
-# Total League Salary
 
 # <codecell>
 
@@ -299,6 +299,7 @@ plt.savefig(r'C:\Users\Tyler\Desktop\foo.png', dpi=300)
 # <codecell>
 
 metric = 'mad_salary'
+blend = True
 step = 10
 yrs = [1977, 1984, 1994, 2004, 2014]
 cm = plt.get_cmap('Blues')
@@ -312,47 +313,62 @@ for idx in range(len(yrs)-1):
     # Select subset of data to plot
     decade = stats[(stats.year >= yrs[idx]) & (stats.year < yrs[idx+1])]
     
+    if blend:
+        x = decade.groupby('team').mean()[metric].as_matrix()
+        y = decade.groupby('team').mean().expected_wins
     # Produce a linear fit for the selected data metric
-    x = decade[metric].as_matrix()
-    x = sm.add_constant(x)
-    est = sm.OLS(decade['expected_wins'], x)
+    else:
+        x = decade[metric].as_matrix()
+        y = decade['expected_wins']
+    xs = sm.add_constant(x)
+    est = sm.OLS(y, xs)
     res = est.fit()
     
-    fakedata = np.arange(decade[metric].min(), decade[metric].max(), 0.4)
+    fakedata = np.arange(np.min(x), np.max(x), 0.4)
     fakedata = sm.add_constant(fakedata)
     y_hat = res.predict(fakedata)
-    plt.plot(fakedata[:,1], y_hat, c='#003DA5', linewidth=4, zorder=1)
+    plt.plot(fakedata[:,1], y_hat, c='k', linewidth=4, alpha=0.8, zorder=1)
     
     # Plot all team data from this period
-    plt.scatter(decade[metric], decade.expected_wins, s=80, alpha=0.3)
-    plt.title("%s to %s (slope=%0.1f)"%(yrs[idx], yrs[idx+1]-1, res.params[1]),
-              )#fontdict={'size':24, 'fontweight':'bold'})
-    team = decade[decade.team.str.contains('Athletics')]
-    l1=plt.scatter(team[metric], team.expected_wins, c='#FFD800', s=120, zorder=2, label='Athletics')
-    
-    team = decade[decade.team.str.contains('Yankees')]
-    l2=plt.scatter(team[metric], team.expected_wins, c='k', s=120, zorder=2, alpha=0.9, label='Yankees')
-    
+    plt.scatter(x, y, s=80, alpha=0.7)
+    if not blend:
+        plt.title("%s to %s (slope=%0.1f)"%(yrs[idx], yrs[idx+1]-1, res.params[1]),)
+        plt.ylabel("Wins", fontsize=16)
+        team = decade[decade.team.str.contains('Athletics')]
+        l1=plt.scatter(team[metric], team.expected_wins, c='#FFD800', s=120, zorder=2, label='Athletics')
+
+        team = decade[decade.team.str.contains('Yankees')]
+        l2=plt.scatter(team[metric], team.expected_wins, c='k', s=120, zorder=2, alpha=0.9, label='Yankees')
+    else:
+        plt.title("%s to %s Average"%(yrs[idx], yrs[idx+1]-1))
+        plt.ylabel("Avg Wins", fontsize=16)
+        team = decade[decade.team.str.contains('Athletics')]
+        l1=plt.scatter(team[metric].mean(), team.expected_wins.mean(), c='#FFD800', s=120, zorder=2, label='Athletics')
+
+        team = decade[decade.team.str.contains('Yankees')]
+        l2=plt.scatter(team[metric].mean(), team.expected_wins.mean(), c='k', s=120, zorder=2, alpha=0.9, label='Yankees')
     plt.plot([0,0], [40, 120], 'w', linewidth=2, zorder=0)
     ax.set_axisbelow(True)
-    ax.set_ylim([40, 120])
-    ax.set_xlim([-3.5, 5.5])
+    ax.set_ylim([60, 102])
+    ax.set_xlim([-3, 4.5])
     ax.set_xticks(np.arange(-3, 6, 1))
-    plt.xlabel("Salary Deviations from Median", fontsize=20)
-    plt.ylabel("Wins (Expected)", fontsize=20)
+    plt.xlabel("Salary Deviations from Median", fontsize=16)
+    
+    text = "Slope:\t%0.1f\nR$^2$:\t %0.2f"%(res.params[1], res.rsquared)
+    ax.text(-2.5, 93, text.expandtabs(), fontsize=16, color='w', bbox=dict(facecolor='k', alpha=0.5))
 #plt.xlim([-4, 5.5])
 #plt.ylim([40, 120])
 plt.suptitle("MLB Wins vs Salary over 10 Yr Periods", y=.98, fontdict={'size':24, 'fontweight':'bold'})
 fig.legend((l1, l2), ('Athletics', 'Yankees'), loc=(.8, .1))
 plt.tight_layout()
 plt.subplots_adjust(top=0.9)
-plt.savefig(r'C:\Users\Tyler\Desktop\foo.png', dpi=300)
+plt.savefig(r'C:\Users\thartley\Desktop\foo.png', dpi=300)
 
 # <codecell>
 
 # Plot of Slope for Wins vs $ by year
 metric = 'mad_salary'
-step = 3
+step = 5
 yrs = range(1977, 2014, step)+[2014]
 
 slopes = []
@@ -371,8 +387,8 @@ fig = plt.figure(figsize=(14,10))
 ax = fig.add_subplot(111,  axisbg='#E0E0E0')
 ax.grid(axis='y', linewidth=2, ls='-', color='#ffffff')
 ax.set_axisbelow(True)
-plt.plot([x[0] for x in slopes], [x[2] for x in slopes], 'k-', linewidth=5, label='%s-yr average'%step)
-
+plt.plot([x[0]+(x[1]-1-x[0])/2. for x in slopes], [x[2] for x in slopes], 'k-', linewidth=5, label='%s-yr average'%step)
+print slopes
 # Plot of Slope for Wins vs $ by year
 metric = 'mad_salary'
 step = 1
@@ -403,14 +419,10 @@ ann = ax.annotate("Luxury Tax\nInstated",
                   )
 plt.title("Does it Pay to Pay in the MLB?", fontdict={'size':24, 'fontweight':'bold'})
 plt.legend(loc='upper right')
-plt.ylabel("Win to $ Slope", fontsize=20)
+plt.ylabel("Power of $ on Wins", fontsize=20)
 plt.xlabel("Year", fontsize=20)
 
-# <codecell>
-
-slopes
-
-# <headingcell level=2>
+# <headingcell level=1>
 
 # Bar graph of average wins for each quartile
 
