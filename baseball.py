@@ -22,7 +22,8 @@ import re
 import datetime
 import matplotlib
 import statsmodels.api as sm
-#import wolframalpha as wa
+
+plt.rc('font', size=16)
 
 # <codecell>
 
@@ -128,7 +129,7 @@ num_lines = 4
 (nominal/nominal[0]).plot(color=cm(2./num_lines), linewidth=linewidth, label='Median US Income', alpha=alpha)
 (textbook/textbook[0]).plot(color=cm(3./num_lines), linewidth=linewidth, style='--', label='College Textbooks', alpha=alpha)
 (nasdaq/nasdaq[0]).plot(color=cm(4./num_lines), linewidth=linewidth, label='NASDAQ', alpha=alpha)
-(league_salary/float(league_salary[0])).plot(color='g', linewidth=4, marker='', label='MLB Salaries')
+(league_salary/float(league_salary[0])).plot(color='g', linewidth=6, marker='', label='MLB Salaries')
 
 #http://www.etforecasts.com/products/ES_pcww1203.htm
 leg = plt.legend(loc='upper left')
@@ -248,40 +249,166 @@ stats = stats.groupby('year').apply(add_mad)
 
 # Add Win%
 stats['wpct'] = stats.w.astype(float)/(stats.w + stats.l)
+stats['expected_wins'] = stats.wpct * 162
+
+# <codecell>
+
+# Plot of all teams & all salaries vs Salary deviations
+
+metric = 'mad_salary'
+step = 40
+cm = plt.get_cmap('Blues')
+
+fig = plt.figure(figsize=(12,8))
+
+ax = fig.add_subplot(1, 1, 1,  axisbg='#E0E0E0')
+ax.grid(axis='y', linewidth=2, ls='-', color='#ffffff')
+
+# Select subset of data to plot
+decade = stats
+
+# Produce a linear fit for the selected data metric
+x = decade[metric].as_matrix()
+x = sm.add_constant(x)
+est = sm.OLS(decade['expected_wins'], x)
+res = est.fit()
+
+fakedata = np.arange(decade[metric].min(), decade[metric].max(), 0.4)
+fakedata = sm.add_constant(fakedata)
+y_hat = res.predict(fakedata)
+plt.plot(fakedata[:,1], y_hat, 'k-', linewidth=4, alpha=0.7, zorder=1)
+
+# Plot all team data from this period
+plt.scatter(decade[metric], decade.expected_wins, s=80, alpha=0.5)
+plt.title("Wins vs Salary - 1977-2013",
+          fontdict={'size':24, 'fontweight':'bold'})
+
+plt.plot([0,0], [40, 120], 'w', linewidth=2, zorder=0)
+ax.set_axisbelow(True)
+ax.set_ylim([40, 120])
+ax.set_xlim([-4, 5.5])
+ax.set_xticks(np.arange(-3, 6, 1))
+plt.xlabel("Median Salary Deviations", fontsize=20)
+plt.ylabel("Wins (Expected)", fontsize=20)
+
+text = "Slope:\t%0.1f\nR$^2$:\t %0.2f"%(res.params[1], res.rsquared)
+plt.text(3.8, 52, text.expandtabs(), fontsize=20, color='w', bbox=dict(facecolor='k', alpha=0.5))
+plt.tight_layout()
+plt.savefig(r'C:\Users\Tyler\Desktop\foo.png', dpi=300)
 
 # <codecell>
 
 metric = 'mad_salary'
 step = 10
-for start_year in range(1975, 2014, step):
+yrs = [1977, 1984, 1994, 2004, 2014]
+cm = plt.get_cmap('Blues')
 
-    decade = stats[(stats.year >= start_year) & (stats.year < start_year+step)]
+fig = plt.figure(figsize=(14,10))
+    
+for idx in range(len(yrs)-1):
+    ax = fig.add_subplot(2, 2, idx+1,  axisbg='#E0E0E0')
+    ax.grid(axis='y', linewidth=2, ls='-', color='#ffffff')
+    
+    # Select subset of data to plot
+    decade = stats[(stats.year >= yrs[idx]) & (stats.year < yrs[idx+1])]
+    
+    # Produce a linear fit for the selected data metric
     x = decade[metric].as_matrix()
     x = sm.add_constant(x)
-    est = sm.OLS(decade['wpct'], x)
-
+    est = sm.OLS(decade['expected_wins'], x)
     res = est.fit()
     
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    plt.scatter(decade[metric], decade.wpct, s=40, alpha=0.5)
-    
-    #decade.plot(x=metric, y='w', kind='scatter', ax=ax, )
-    team = decade[decade.team.str.contains('Athletics')]
-    plt.scatter(team[metric], team.wpct, c='y', s=80)
-    
-    #decade[decade.team.str.contains('Athletics')].plot(x=metric, y='w', color='y', style='.', markersize=30, ax=ax)
-    team = decade[decade.team.str.contains('Yankees')]
-    plt.scatter(team[metric], team.wpct, c='k', s=80)
-
-    fakedata = np.arange(decade[metric].min(), decade[metric].max(), 0.2)
+    fakedata = np.arange(decade[metric].min(), decade[metric].max(), 0.4)
     fakedata = sm.add_constant(fakedata)
     y_hat = res.predict(fakedata)
-    plt.plot(fakedata[:,1], y_hat, c='r')
-    plt.title("%s to %s = %0.3f"%(start_year, start_year+step-1, res.params[1]))
+    plt.plot(fakedata[:,1], y_hat, c='#003DA5', linewidth=4, zorder=1)
     
-    #res.summary()
+    # Plot all team data from this period
+    plt.scatter(decade[metric], decade.expected_wins, s=80, alpha=0.3)
+    plt.title("%s to %s (slope=%0.1f)"%(yrs[idx], yrs[idx+1]-1, res.params[1]),
+              )#fontdict={'size':24, 'fontweight':'bold'})
+    team = decade[decade.team.str.contains('Athletics')]
+    l1=plt.scatter(team[metric], team.expected_wins, c='#FFD800', s=120, zorder=2, label='Athletics')
     
+    team = decade[decade.team.str.contains('Yankees')]
+    l2=plt.scatter(team[metric], team.expected_wins, c='k', s=120, zorder=2, alpha=0.9, label='Yankees')
+    
+    plt.plot([0,0], [40, 120], 'w', linewidth=2, zorder=0)
+    ax.set_axisbelow(True)
+    ax.set_ylim([40, 120])
+    ax.set_xlim([-3.5, 5.5])
+    ax.set_xticks(np.arange(-3, 6, 1))
+    plt.xlabel("Salary Deviations from Median", fontsize=20)
+    plt.ylabel("Wins (Expected)", fontsize=20)
+#plt.xlim([-4, 5.5])
+#plt.ylim([40, 120])
+plt.suptitle("MLB Wins vs Salary over 10 Yr Periods", y=.98, fontdict={'size':24, 'fontweight':'bold'})
+fig.legend((l1, l2), ('Athletics', 'Yankees'), loc=(.8, .1))
+plt.tight_layout()
+plt.subplots_adjust(top=0.9)
+plt.savefig(r'C:\Users\Tyler\Desktop\foo.png', dpi=300)
+
+# <codecell>
+
+# Plot of Slope for Wins vs $ by year
+metric = 'mad_salary'
+step = 3
+yrs = range(1977, 2014, step)+[2014]
+
+slopes = []
+
+for idx in range(len(yrs)-1):
+    yrdata = stats[(stats.year >= yrs[idx]) & (stats.year < yrs[idx+1])]
+    
+    # Produce a linear fit for the selected data metric
+    x = yrdata[metric].as_matrix()
+    x = sm.add_constant(x)
+    est = sm.OLS(yrdata['expected_wins'], x)
+    res = est.fit()
+    slopes.append([yrs[idx], yrs[idx+1], res.params[1]])
+
+fig = plt.figure(figsize=(14,10))
+ax = fig.add_subplot(111,  axisbg='#E0E0E0')
+ax.grid(axis='y', linewidth=2, ls='-', color='#ffffff')
+ax.set_axisbelow(True)
+plt.plot([x[0] for x in slopes], [x[2] for x in slopes], 'k-', linewidth=5, label='%s-yr average'%step)
+
+# Plot of Slope for Wins vs $ by year
+metric = 'mad_salary'
+step = 1
+yrs = range(1977, 2014, step)+[2014]
+slopes = []
+
+for idx in range(len(yrs)-1):
+    yrdata = stats[(stats.year >= yrs[idx]) & (stats.year < yrs[idx+1])]
+    
+    # Produce a linear fit for the selected data metric
+    x = yrdata[metric].as_matrix()
+    x = sm.add_constant(x)
+    est = sm.OLS(yrdata['expected_wins'], x)
+    res = est.fit()
+    slopes.append([yrs[idx], yrs[idx+1], res.params[1]])
+    
+plt.plot([x[0] for x in slopes], [x[2] for x in slopes], 'bo-', alpha=0.3, linewidth=3, label='Yearly value')  
+
+# Legends, titles, etc
+ann = ax.annotate("Luxury Tax\nInstated",
+                  xy=(2003, 5.35), xycoords='data',
+                  xytext=(2001, 2), textcoords='data',
+                  size=20, va="center", ha="center",
+                  #bbox=dict(fc="w"),
+                  arrowprops=dict(arrowstyle="-|>",
+                                  connectionstyle="arc3,rad=-0.2",
+                                  fc="w"),
+                  )
+plt.title("Does it Pay to Pay in the MLB?", fontdict={'size':24, 'fontweight':'bold'})
+plt.legend(loc='upper right')
+plt.ylabel("Win to $ Slope", fontsize=20)
+plt.xlabel("Year", fontsize=20)
+
+# <codecell>
+
+slopes
 
 # <headingcell level=2>
 
@@ -289,8 +416,24 @@ for start_year in range(1975, 2014, step):
 
 # <codecell>
 
+def renum_playoffs(playoff):
+    if 'None' in playoff:
+        return 0
+    if 'NLWC' in playoff or 'ALWC' in playoff or 'LDS' in playoff:
+        return 1
+    elif 'ALCS' in playoff or 'NLCS' in playoff:
+        return 2
+    elif 'Lost WS' in playoff:
+        return 3
+    elif 'Won' in playoff:
+        return 4
+    
+stats.playoffs = stats.playoffs.map(renum_playoffs)
 
-stats = stats[stats.year > 1994]
+# <codecell>
+
+
+#stats = stats[stats.year > 1994]
 stats['quartile'] = pd.qcut(stats.mad_salary, q=[0, .25, .5, .75, 1.], labels=['1', '2', '3', '4'])
 
 quartiles = stats.groupby('quartile')
@@ -299,6 +442,7 @@ quartiles = stats.groupby('quartile')
 
 # Plot the winning % for each quartile as a fancy-ass graph
 import matplotlib.gridspec as gridspec
+plt.rc('font', size=16)
 fig = plt.figure(figsize=(9,7))
 gs = gridspec.GridSpec(2,1, height_ratios=[6,1])
 ax = plt.subplot(gs[0], axisbg='#E0E0E0')
@@ -347,11 +491,8 @@ plt.tight_layout()
 
 # <codecell>
 
-quartiles.quartile.count()[1]
-
-# <codecell>
-
 # plot liklihood of making the playoffs
+plt.rc('font', size=16)
 fig = plt.figure(figsize=(9,7))
 ax = fig.add_subplot(111, axisbg='#E0E0E0')
 ax.grid(axis='y', linewidth=2, ls='-', color='#ffffff')
@@ -361,21 +502,22 @@ margin = 0.15
 width = 1.-2*margin
 ind = np.arange(4)
 
-cm = plt.get_cmap('Blues')
+cm = plt.get_cmap('Reds')
 colors = [cm(c) for c in [0.6,0.7,0.8,0.9]]
 
-pts = quartiles.playoffs.agg(lambda x: np.sum(x > 0))
+pts = quartiles.playoffs.agg(lambda x: np.sum(x > 3))
 plt.bar(ind+margin, pts, width, color=colors)
 ax.set_xticks(ind+0.5)
 ax.set_xticklabels(['Q1', 'Q2', 'Q3', 'Q4'])
 ax.set_ylim([0, np.max(pts)*1.1])
 
 for i, wp in enumerate(pts):
-    ax.text((ind+margin)[i]+0.25, 3, '%d%%'%(100*float(wp)/quartiles.quartile.count()[1]), fontdict={'color':'w'})
+    ax.text((ind+margin)[i]+0.25, 1.5, '%0.1f%%'%(100*float(wp)/quartiles.quartile.count()[1]), 
+            fontdict={'color':'k', 'fontsize':20})
     
-ax.set_ylabel("Trips to Playoffs", fontsize=20)
+ax.set_ylabel("Trips to World Series", fontsize=20)
 ax.set_xlabel("Payroll Quartile", fontsize=20)
-ax.set_title("Trips to the Playoffs by Quartile (1995+)", 
+ax.set_title("Trips to the World Series by Quartile (1977+)", 
              fontdict={'size':24, 'fontweight':'bold'})
 
 # <codecell>
@@ -385,22 +527,6 @@ ind
 # <headingcell level=1>
 
 # Heatmap of wins vs cost
-
-# <codecell>
-
-def renum_playoffs(playoff):
-    if 'None' in playoff:
-        return 0
-    if 'NLWC' in playoff or 'ALWC' in playoff or 'LDS' in playoff:
-        return 1
-    elif 'ALCS' in playoff or 'NLCS' in playoff:
-        return 2
-    elif 'Lost WS' in playoff:
-        return 3
-    elif 'Won' in playoff:
-        return 4
-    
-stats.playoffs = stats.playoffs.map(renum_playoffs)
 
 # <codecell>
 
@@ -431,8 +557,4 @@ plt.bar(locs[:-1]-.5, np.array(po).astype(float)/al, 0.8)
 # <headingcell level=2>
 
 # Percent of teams in each quartile to make playoffs/win WS
-
-# <codecell>
-
-stats.std_salary.quantile(.25)
 
