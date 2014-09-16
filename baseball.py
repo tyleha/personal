@@ -118,6 +118,10 @@ textbook.index = textbooks.month
 
 # <codecell>
 
+nominal
+
+# <codecell>
+
 fig = plt.figure(figsize=(12,8))
 plt.rc('font', size=16)
 cm = plt.get_cmap('Blues')
@@ -203,7 +207,7 @@ for i, g in byteam:
             'label':'Red Sox'
             }
     if 'Oakland' in i:
-        kwargs = {'color':'#005C5C', 'zorder':2,
+        kwargs = {'color':'#FFD800', 'zorder':2,
             'alpha':1, 'linewidth':4,
             'label':'A\'s'
             }
@@ -223,7 +227,7 @@ ax.legend(loc='upper left')
 
 # <headingcell level=1>
 
-# 3. Wins vs Cost
+# Wins vs Cost
 
 # <codecell>
 
@@ -308,7 +312,7 @@ fig = plt.figure(figsize=(14,10))
     
 for idx in range(len(yrs)-1):
     ax = fig.add_subplot(2, 2, idx+1,  axisbg='#E0E0E0')
-    ax.grid(axis='y', linewidth=2, ls='-', color='#ffffff')
+    #ax.grid(axis='y', linewidth=2, ls='-', color='#ffffff')
     
     # Select subset of data to plot
     decade = stats[(stats.year >= yrs[idx]) & (stats.year < yrs[idx+1])]
@@ -348,10 +352,11 @@ for idx in range(len(yrs)-1):
         team = decade[decade.team.str.contains('Yankees')]
         l2=plt.scatter(team[metric].mean(), team.expected_wins.mean(), c='k', s=120, zorder=2, alpha=0.9, label='Yankees')
     plt.plot([0,0], [40, 120], 'w', linewidth=2, zorder=0)
+    plt.plot([-5, 5], [81, 81],  'w', linewidth=2, zorder=0)
     ax.set_axisbelow(True)
     ax.set_ylim([60, 102])
     ax.set_xlim([-3, 4.5])
-    ax.set_xticks(np.arange(-3, 6, 1))
+    ax.set_xticks(np.arange(-3, 5, 1))
     plt.xlabel("Salary Deviations from Median", fontsize=16)
     
     text = "Slope:\t%0.1f\nR$^2$:\t %0.2f"%(res.params[1], res.rsquared)
@@ -362,7 +367,7 @@ plt.suptitle("MLB Wins vs Salary over 10 Yr Periods", y=.98, fontdict={'size':24
 fig.legend((l1, l2), ('Athletics', 'Yankees'), loc=(.8, .1))
 plt.tight_layout()
 plt.subplots_adjust(top=0.9)
-plt.savefig(r'C:\Users\thartley\Desktop\foo.png', dpi=300)
+plt.savefig(r'C:\Users\Tyler\Desktop\foo.png', dpi=300)
 
 # <codecell>
 
@@ -419,7 +424,7 @@ ann = ax.annotate("Luxury Tax\nInstated",
                   )
 plt.title("Does it Pay to Pay in the MLB?", fontdict={'size':24, 'fontweight':'bold'})
 plt.legend(loc='upper right')
-plt.ylabel("Power of $ on Wins", fontsize=20)
+plt.ylabel("Relationship b/t $ and Wins", fontsize=20)
 plt.xlabel("Year", fontsize=20)
 
 # <headingcell level=1>
@@ -517,7 +522,7 @@ ind = np.arange(4)
 cm = plt.get_cmap('Reds')
 colors = [cm(c) for c in [0.6,0.7,0.8,0.9]]
 
-pts = quartiles.playoffs.agg(lambda x: np.sum(x > 3))
+pts = quartiles.playoffs.agg(lambda x: np.sum(x > 2))
 plt.bar(ind+margin, pts, width, color=colors)
 ax.set_xticks(ind+0.5)
 ax.set_xticklabels(['Q1', 'Q2', 'Q3', 'Q4'])
@@ -531,10 +536,6 @@ ax.set_ylabel("Trips to World Series", fontsize=20)
 ax.set_xlabel("Payroll Quartile", fontsize=20)
 ax.set_title("Trips to the World Series by Quartile (1977+)", 
              fontdict={'size':24, 'fontweight':'bold'})
-
-# <codecell>
-
-ind
 
 # <headingcell level=1>
 
