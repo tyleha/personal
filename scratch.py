@@ -3,12 +3,6 @@
 
 # <codecell>
 
-import pandas as pd
-import numpy as np
-import json
-
-# <codecell>
-
 xxx = """
 Int64 hash (String s) {
         Int64 h = 7
@@ -22,74 +16,44 @@ Int64 hash (String s) {
 
 # <codecell>
 
-Find a 9 letter string of characters that contains only letters from
-
-acdegilmnoprstuw
-
-such that the hash(the_string) is
-
-945924806726376
-
-ex: leepadg = 680131659347
-
-# <codecell>
-
-def myhash(astr):
-    h = 7
-    the_chars = 'acdegilmnoprstuw'
-    for letter in astr:
-        h = (h*37 + the_chars.index(letter))
-    return h
-
-the_chars = 'acdegilmnoprstuw'
+available_characters = 'acdegilmnoprstuw'
 the_hash = 945924806726376
 
-def reverse_hash(anum):
-    the_word = ''
-    possible_indices = range(len(the_chars))
-    numloops = 0
+def forward_hash(astring, available_characters):
+    """A python version of the original hash algo"""
+    h = 7
+    for letter in astring:
+        h = (h*37 + available_characters.index(letter))
+    return h
+
+def reverse_hash(the_hash, available_characters):
+    """The reverse of the forward_hash algorithm"""
+    the_word = ''    
     
-    while anum != 7 and numloops < 100:
-        numloops += 1
-        for idx in possible_indices:
-            #print idx
-            hashbit = ((anum - idx)/37.0)
+    # When the hash equals the starting value of 7, you're done.
+    while the_hash != 7:
+        # Iterate through each possible character
+        for idx, letter in enumerate(available_characters):
+            # Here's the important bit - determine if the algorithm can be reversed
+            # and yet still arrive at an integer value. If not, try the next character.
+            hashbit = ((the_hash - idx)/37.0)
             if hashbit%1 == 0:
-                print hashbit, the_chars[idx]
-                anum = hashbit
-                the_word += the_chars[idx]
+                # Decrement your hash
+                the_hash = hashbit
+                # Store the correct character
+                the_word += letter
                 break
-    
+            if idx == len(available_characters)-1:
+                raise UserWarning, "Either your hash or your algorithm is terrible..."
+    # We've found our word. Reverse it (as we reversed the algorithm) and return.
     return the_word[::-1]
 
-def reverse_algo(number, an_index):
-    return (int(number) - int(an_index))/37
 
     
 
 # <codecell>
 
-res = reverse_hash(the_hash)
-print res
-
-# <codecell>
-
-myhash(res)
-
-# <codecell>
-
-# step 0: h is 7
-# step 1: multiply h by 37
-# step 2: add the index of the character
-# step 3: repeat...
-
-# <codecell>
-
-945924806726376
-
-# <codecell>
-
-4.0%1 == 0
+%timeit reverse_hash(1317985395604951854, 'acdegilmnoprstuw')
 
 # <codecell>
 
