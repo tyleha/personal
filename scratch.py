@@ -16,8 +16,9 @@ Int64 hash (String s) {
 
 # <codecell>
 
-available_characters = 'acdegilmnoprstuw'
-the_hash = 945924806726376
+import pdb
+
+# <codecell>
 
 def forward_hash(astring, available_characters):
     """A python version of the original hash algo"""
@@ -29,22 +30,23 @@ def forward_hash(astring, available_characters):
 def reverse_hash(the_hash, available_characters):
     """The reverse of the forward_hash algorithm"""
     the_word = ''    
-    
+    iters = 0
     # When the hash equals the starting value of 7, you're done.
-    while the_hash != 7:
+    while the_hash != 7 and iters < 20:
+
         # Iterate through each possible character
         for idx, letter in enumerate(available_characters):
+            
             # Here's the important bit - determine if the algorithm can be reversed
             # and yet still arrive at an integer value. If not, try the next character.
-            hashbit = ((the_hash - idx)/37.0)
-            if hashbit%1 == 0:
-                # Decrement your hash
-                the_hash = hashbit
+            if (the_hash - idx)%37 == 0:
+                # Decrement your hash. Don't have to worry about floats because you know 37 is a factor.
+                the_hash = (the_hash - idx)/37
                 # Store the correct character
                 the_word += letter
                 break
             if idx == len(available_characters)-1:
-                raise UserWarning, "Either your hash or your algorithm is terrible..."
+                raise UserWarning, "Either your hash or your algorithm is no good..."
     # We've found our word. Reverse it (as we reversed the algorithm) and return.
     return the_word[::-1]
 
@@ -53,7 +55,16 @@ def reverse_hash(the_hash, available_characters):
 
 # <codecell>
 
-%timeit reverse_hash(1317985395604951854, 'acdegilmnoprstuw')
+original_hash = 1317985395604951854
+available_characters = 'acdegilmnoprstuw'
+
+the_word = reverse_hash(original_hash, available_characters)
+new_hash = forward_hash(the_word, available_characters)
+if original_hash == new_hash:
+    print 'Great success! The original hashed word is:', the_word
+else:
+    print 'Abject failure.'
+
 
 # <codecell>
 
