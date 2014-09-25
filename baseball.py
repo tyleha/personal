@@ -433,6 +433,18 @@ plt.xlabel("Year", fontsize=20)
 
 # <codecell>
 
+def playoff_wins(playoff):
+    if 'None' in playoff:
+        return 0
+    if 'NLWC' in playoff or 'ALWC' in playoff or 'LDS' in playoff:
+        return int(re.findall('\d', playoff)[1])
+    elif 'ALCS' in playoff or 'NLCS' in playoff:
+        return 3+int(re.findall('\d', playoff)[1])
+    elif 'Lost WS' in playoff:
+        return 3+4+int(re.findall('\d', playoff)[1])
+    elif 'Won' in playoff:
+        return 3+4+4   
+
 def renum_playoffs(playoff):
     if 'None' in playoff:
         return 0
@@ -444,16 +456,47 @@ def renum_playoffs(playoff):
         return 3
     elif 'Won' in playoff:
         return 4
-    
+
+stats['playoff_wins'] = stats.playoffs.map(playoff_wins)
 stats.playoffs = stats.playoffs.map(renum_playoffs)
 
 # <codecell>
 
+import copy
+stats_old = copy.deepcopy(stats)
 
-#stats = stats[stats.year > 1994]
+# <codecell>
+
+
+_stats = stats_old[(stats_old.year >= 2003) & (stats_old.year < 2103)]
+stats = copy.deepcopy(_stats)
 stats['quartile'] = pd.qcut(stats.mad_salary, q=[0, .25, .5, .75, 1.], labels=['1', '2', '3', '4'])
 
-quartiles = stats.groupby('quartile')
+quartiles_new = stats.groupby('quartile')
+
+# <codecell>
+
+
+# <codecell>
+
+
+print quartiles_new.playoff_wins.sum()
+print quartiles_new.playoffs.agg(lambda x: np.sum(x >= 1))/quartiles_new.mad_salary.count()
+
+# <codecell>
+
+
+print quartiles_old.playoff_wins.sum()
+print quartiles_old.playoffs.agg(lambda x: np.sum(x >= 1))/quartiles_old.mad_salary.count()
+
+# <codecell>
+
+playoff_levels = ['Made LDS/WC', 'Made LCS', 'Made WS' 'Won WS']
+stuff = []
+for i in range(1, 5): # for each level of playoffs:`
+    stuff.append(quartiles.playoffs.agg(lambda x: np.sum(x >= i))/quartiles.mad_salary.count())
+table = np.array(stuff).T
+print table
 
 # <codecell>
 
