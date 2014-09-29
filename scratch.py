@@ -55,7 +55,7 @@ def reverse_hash(the_hash, available_characters):
 
 # <codecell>
 
-original_hash = 1317985395604951854
+original_hash = 945924806726376
 available_characters = 'acdegilmnoprstuw'
 
 the_word = reverse_hash(original_hash, available_characters)

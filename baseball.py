@@ -458,96 +458,75 @@ def renum_playoffs(playoff):
         return 4
 
 stats['playoff_wins'] = stats.playoffs.map(playoff_wins)
-stats.playoffs = stats.playoffs.map(renum_playoffs)
+stats['playoffs'] = stats.playoffs.map(renum_playoffs)
 
 # <codecell>
 
 import copy
-stats_old = copy.deepcopy(stats)
+stats_copy = copy.deepcopy(stats)
+stats_new = stats_copy[(stats_copy.year >= 2003) & (stats_copy.year < 2103)]
+stats_old = stats_copy[(stats_copy.year >= 1995) & (stats_copy.year < 2003)]
+stats_since94 = stats[stats.year > 1994]
 
 # <codecell>
 
+stats_old['quartile'] = pd.qcut(stats_old.mad_salary, q=[0, .25, .5, .75, 1.], labels=['1', '2', '3', '4'])
+quartiles_old = stats_old.groupby('quartile')
 
-_stats = stats_old[(stats_old.year >= 2003) & (stats_old.year < 2103)]
-stats = copy.deepcopy(_stats)
-stats['quartile'] = pd.qcut(stats.mad_salary, q=[0, .25, .5, .75, 1.], labels=['1', '2', '3', '4'])
+stats_new['quartile'] = pd.qcut(stats_new.mad_salary, q=[0, .25, .5, .75, 1.], labels=['1', '2', '3', '4'])
+quartiles_new = stats_new.groupby('quartile')
 
-quartiles_new = stats.groupby('quartile')
-
-# <codecell>
-
-
-# <codecell>
-
-
-print quartiles_new.playoff_wins.sum()
-print quartiles_new.playoffs.agg(lambda x: np.sum(x >= 1))/quartiles_new.mad_salary.count()
+stats_since94['quartile'] = pd.qcut(stats_since94.mad_salary, q=[0, .25, .5, .75, 1.], labels=['1', '2', '3', '4'])
+quartiles = stats_since94.groupby('quartile')
 
 # <codecell>
 
-
-print quartiles_old.playoff_wins.sum()
-print quartiles_old.playoffs.agg(lambda x: np.sum(x >= 1))/quartiles_old.mad_salary.count()
+quartiles_old.playoffs.value_counts()
 
 # <codecell>
 
+quartiles_new.count()
+
+# <codecell>
+
+# plot liklihood of making the playoffs from pre and post luxury tax
+plt.rc('font', size=16)
+fig = plt.figure(figsize=(10,7))
+ax = fig.add_subplot(111, axisbg='#E0E0E0')
+ax.grid(axis='y', linewidth=2, ls='-', color='#ffffff')
+ax.set_axisbelow(True)
+
+margin = 0.15
+width = (1-margin*2)/2
+ind = np.arange(4)
+
+cm = plt.get_cmap('Reds')
+colors = [cm(c) for c in [0.6,0.7,0.8,0.9]]
+
+
+ax.bar(ind+margin, quartiles_old.playoffs.agg(lambda x: np.sum(x >= 1))/quartiles_old.playoffs.count(), 
+        width, color=cm(0.9), label='1995-2003')
+ax.bar(ind+width+margin, quartiles_new.playoffs.agg(lambda x: np.sum(x >= 1))/quartiles_new.playoffs.count(), 
+        width, color=cm(0.6), label='2004-2013')
+ax.set_xticks(ind+0.5)
+ax.set_xticklabels(['Q1', 'Q2', 'Q3', 'Q4'][::-1])
+
+ax.legend(loc='upper left')
+
+ax.set_ylabel("Fraction of teams to reach Playoffs", fontsize=20)
+ax.set_xlabel("Payroll Quartile", fontsize=20)
+ax.set_title("Broken down by payroll quartile pre and post Luxury Tax", y=1.02)
+fig.suptitle("Rate of reaching the postseason", fontdict={'size':24, 'fontweight':'bold'}, y=1.03)
+
+# <codecell>
+
+# Table of playoff levels reached by quartile
 playoff_levels = ['Made LDS/WC', 'Made LCS', 'Made WS' 'Won WS']
 stuff = []
 for i in range(1, 5): # for each level of playoffs:`
     stuff.append(quartiles.playoffs.agg(lambda x: np.sum(x >= i))/quartiles.mad_salary.count())
 table = np.array(stuff).T
 print table
-
-# <codecell>
-
-# Plot the winning % for each quartile as a fancy-ass graph
-import matplotlib.gridspec as gridspec
-plt.rc('font', size=16)
-fig = plt.figure(figsize=(9,7))
-gs = gridspec.GridSpec(2,1, height_ratios=[6,1])
-ax = plt.subplot(gs[0], axisbg='#E0E0E0')
-ax2 = plt.subplot(gs[1], axisbg='#E0E0E0')
-
-margin = 0.15
-width = 1.-2*margin
-ind = np.arange(4)
-xdata = ind + margin
-
-
-pts = quartiles.wpct.mean()
-# plot the same data on both axes
-cm = plt.get_cmap('Blues')
-colors = [cm(c) for c in [0.6,0.7,0.8,0.9]]
-out = ax.bar(xdata, pts, width, yerr=quartiles.wpct.std(), color=colors, 
-             error_kw=dict(ecolor='k', lw=1.5, capsize=5, capthick=2))
-out2 = ax2.bar(xdata, pts, width, color=colors)
-    
-# zoom-in / limit the view to different portions of the data
-ax.set_ylim(.4,.63) # outliers only
-ax2.set_ylim(0,.04) # most of the data
-ax.grid(axis='y', linewidth=2, ls='-', color='#ffffff')
-#ax2.grid(axis='y', linewidth=2, ls='-', color='#ffffff')
-ax.set_axisbelow(True)
-
-# hide the spines between ax and ax2
-ax.spines['bottom'].set_visible(False)
-ax2.spines['top'].set_visible(False)
-ax.xaxis.tick_top()
-ax.tick_params(labeltop='off') # don't put tick labels at the top
-ax2.xaxis.tick_bottom()
-
-ax2.set_yticks([0.0, 0.05])
-ax2.set_xticks(ind+0.5)
-ax2.set_xticklabels(['Q1', 'Q2', 'Q3', 'Q4'])
-
-ax.set_ylabel("Win %", fontsize=20)
-plt.xlabel("Payroll Quartile", fontsize=20)
-ax.set_title("Mean Wins by Payroll Quartile (1977+)", 
-             fontdict={'size':24, 'fontweight':'bold'})
-
-for i, wp in enumerate(pts):
-    ax.text(0.26*(i*3.9+1), 0.41, '%d wins'%(wp*162), fontdict={'color':'w'})
-plt.tight_layout()
 
 # <codecell>
 
