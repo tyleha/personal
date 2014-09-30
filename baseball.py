@@ -481,14 +481,6 @@ quartiles = stats_since94.groupby('quartile')
 
 # <codecell>
 
-quartiles_old.playoffs.value_counts()
-
-# <codecell>
-
-quartiles_new.count()
-
-# <codecell>
-
 # plot liklihood of making the playoffs from pre and post luxury tax
 plt.rc('font', size=16)
 fig = plt.figure(figsize=(10,7))
@@ -530,34 +522,30 @@ print table
 
 # <codecell>
 
-# plot liklihood of making the playoffs
-plt.rc('font', size=16)
+# plot payroll rank of WS winners by year
+plt.rc('font', size=14)
 fig = plt.figure(figsize=(9,7))
 ax = fig.add_subplot(111, axisbg='#E0E0E0')
 ax.grid(axis='y', linewidth=2, ls='-', color='#ffffff')
+ax.grid(axis='x', linewidth=2, ls='-', color='#ffffff')
 ax.set_axisbelow(True)
 
-margin = 0.15
-width = 1.-2*margin
-ind = np.arange(4)
-
 cm = plt.get_cmap('Reds')
-colors = [cm(c) for c in [0.6,0.7,0.8,0.9]]
+winners = stats[(stats.year > 1990) & (stats.playoffs == 4)]
 
-pts = quartiles.playoffs.agg(lambda x: np.sum(x > 2))
-plt.bar(ind+margin, pts, width, color=colors)
-ax.set_xticks(ind+0.5)
-ax.set_xticklabels(['Q1', 'Q2', 'Q3', 'Q4'])
-ax.set_ylim([0, np.max(pts)*1.1])
+for yr in np.arange(1991, 2014):
+    if yr == 1994:
+        continue
+    thisyear = stats[stats.year == yr]
+    plt.scatter(yr, winners[winners.year == yr].mad_salary, edgecolor='k', s=160, color='r', zorder=2)
+    plt.scatter(thisyear.year, thisyear.mad_salary, s=60, alpha=0.6, zorder=1)
 
-for i, wp in enumerate(pts):
-    ax.text((ind+margin)[i]+0.25, 1.5, '%0.1f%%'%(100*float(wp)/quartiles.quartile.count()[1]), 
-            fontdict={'color':'k', 'fontsize':20})
-    
-ax.set_ylabel("Trips to World Series", fontsize=20)
-ax.set_xlabel("Payroll Quartile", fontsize=20)
-ax.set_title("Trips to the World Series by Quartile (1977+)", 
-             fontdict={'size':24, 'fontweight':'bold'})
+ax.set_xlim([1989, 2015])
+ax.set_ylabel("Normalized Team Payroll", fontsize=20)
+
+ax.legend(['WS Winners'], loc='upper left')
+fig.suptitle("Who wins the World Series?", fontdict={'size':24, 'fontweight':'bold'}, y=1.03)
+ax.set_title("Using team payroll normalized by deviations from median", y=1.02)
 
 # <headingcell level=1>
 
