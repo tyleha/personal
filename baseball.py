@@ -96,8 +96,8 @@ league_salary.index = league_salary.index.map(lambda x: datetime.datetime(x, 1, 
 try:
     ff = pd.ExcelFile(r'C:\Users\thartley\Documents\Dropbox\prices.xlsx')
 except:
-    ff = pd.ExcelFile('C:\Users\Tyler\Documents\My Dropbox\prices.xlsx')
-    nd = pd.ExcelFile(r'C:\Users\Tyler\Desktop\nasdaq.xlsx')
+    ff = pd.ExcelFile(r'C:\Users\Tyler\Google Drive\DOCUMENTS\Blog Data\Baseball Salary\prices.xlsx')
+    nd = pd.ExcelFile(r'C:\Users\Tyler\Google Drive\DOCUMENTS\Blog Data\Baseball Salary\nasdaq.xlsx')
                       
 incomes = ff.parse('household')
 incomes = incomes[incomes.year > 1976].sort(columns='year').reset_index(drop=True)
@@ -118,11 +118,7 @@ textbook.index = textbooks.month
 
 # <codecell>
 
-nominal
-
-# <codecell>
-
-fig = plt.figure(figsize=(12,8))
+fig = plt.figure(figsize=(10,7))
 plt.rc('font', size=16)
 cm = plt.get_cmap('Blues')
 ax = fig.add_subplot(111, axisbg='#E0E0E0')
@@ -142,14 +138,15 @@ ax.grid(axis='x')
 ax.set_axisbelow(True)
 
 #ax.tick_params(labelsize=16)
-ax.set_xlabel('Year', fontsize=20)
-ax.set_ylabel('Fold Change', fontsize=20)
+ax.set_xlabel('', fontsize=16)
+ax.set_ylabel('Fold Change', fontsize=16)
 
-ax.set_title("Total MLB Salaries since 1977 CBA", 
-             fontdict={'size':24, 'fontweight':'bold'})
+fig.suptitle("Total MLB Salaries since 1977", 
+             fontdict={'size':24, 'fontweight':'bold'}, y=1.03)
+ax.set_title('Unadjusted for inflation, charted as fold change', y=1.02)
 #ax.set_position([0, 0.2, 1, 0.8])
 
-ax.text(80, -15.0, 'Source: stuff\nmorestuff\n   Even more stuffff')
+ax.text(80, -8.0, 'Sources: baseball-reference.com, finance.yahoo.com, bls.gov', color='#555555')
 plt.tight_layout()
 plt.savefig(r'C:\Users\Tyler\Desktop\foo.png', dpi=300)
 
@@ -303,7 +300,7 @@ plt.savefig(r'C:\Users\Tyler\Desktop\foo.png', dpi=300)
 # <codecell>
 
 metric = 'mad_salary'
-blend = True
+blend = False
 step = 10
 yrs = [1977, 1984, 1994, 2004, 2014]
 cm = plt.get_cmap('Blues')
@@ -334,9 +331,9 @@ for idx in range(len(yrs)-1):
     plt.plot(fakedata[:,1], y_hat, c='k', linewidth=4, alpha=0.8, zorder=1)
     
     # Plot all team data from this period
-    plt.scatter(x, y, s=80, alpha=0.7)
+    plt.scatter(x, y, s=80, alpha=0.6)
     if not blend:
-        plt.title("%s to %s (slope=%0.1f)"%(yrs[idx], yrs[idx+1]-1, res.params[1]),)
+        plt.title("%s to %s"%(yrs[idx], yrs[idx+1]-1))
         plt.ylabel("Wins", fontsize=16)
         team = decade[decade.team.str.contains('Athletics')]
         l1=plt.scatter(team[metric], team.expected_wins, c='#FFD800', s=120, zorder=2, label='Athletics')
@@ -352,15 +349,15 @@ for idx in range(len(yrs)-1):
         team = decade[decade.team.str.contains('Yankees')]
         l2=plt.scatter(team[metric].mean(), team.expected_wins.mean(), c='k', s=120, zorder=2, alpha=0.9, label='Yankees')
     plt.plot([0,0], [40, 120], 'w', linewidth=2, zorder=0)
-    plt.plot([-5, 5], [81, 81],  'w', linewidth=2, zorder=0)
+    plt.plot([-5, 5.5], [81, 81],  'w', linewidth=2, zorder=0)
     ax.set_axisbelow(True)
-    ax.set_ylim([60, 102])
-    ax.set_xlim([-3, 4.5])
+    ax.set_ylim([40, 120])
+    ax.set_xlim([-3.5, 5.5])
     ax.set_xticks(np.arange(-3, 5, 1))
     plt.xlabel("Salary Deviations from Median", fontsize=16)
     
     text = "Slope:\t%0.1f\nR$^2$:\t %0.2f"%(res.params[1], res.rsquared)
-    ax.text(-2.5, 93, text.expandtabs(), fontsize=16, color='w', bbox=dict(facecolor='k', alpha=0.5))
+    ax.text(-3, 105, text.expandtabs(), fontsize=16, color='w', bbox=dict(facecolor='k', alpha=0.5))
 #plt.xlim([-4, 5.5])
 #plt.ylim([40, 120])
 plt.suptitle("MLB Wins vs Salary over 10 Yr Periods", y=.98, fontdict={'size':24, 'fontweight':'bold'})
@@ -388,7 +385,7 @@ for idx in range(len(yrs)-1):
     res = est.fit()
     slopes.append([yrs[idx], yrs[idx+1], res.params[1]])
 
-fig = plt.figure(figsize=(14,10))
+fig = plt.figure(figsize=(10,7))
 ax = fig.add_subplot(111,  axisbg='#E0E0E0')
 ax.grid(axis='y', linewidth=2, ls='-', color='#ffffff')
 ax.set_axisbelow(True)
@@ -422,10 +419,11 @@ ann = ax.annotate("Luxury Tax\nInstated",
                                   connectionstyle="arc3,rad=-0.2",
                                   fc="w"),
                   )
-plt.title("Does it Pay to Pay in the MLB?", fontdict={'size':24, 'fontweight':'bold'})
+plt.suptitle("The Power of Money in MLB", fontdict={'size':24, 'fontweight':'bold'}, y=1.03)
+plt.title('The rise and fall of Salary Power since 1977 among all teams', y=1.02)
 plt.legend(loc='upper right')
-plt.ylabel("Relationship b/t $ and Wins", fontsize=20)
-plt.xlabel("Year", fontsize=20)
+plt.ylabel("Salary Power", fontsize=16)
+#plt.xlabel("Year", fontsize=20)
 
 # <headingcell level=1>
 
@@ -505,8 +503,8 @@ ax.set_xticklabels(['Q1', 'Q2', 'Q3', 'Q4'][::-1])
 
 ax.legend(loc='upper left')
 
-ax.set_ylabel("Fraction of teams to reach Playoffs", fontsize=20)
-ax.set_xlabel("Payroll Quartile", fontsize=20)
+ax.set_ylabel("Fraction of teams to reach Playoffs")
+ax.set_xlabel("Payroll Quartile")
 ax.set_title("Broken down by payroll quartile pre and post Luxury Tax", y=1.02)
 fig.suptitle("Rate of reaching the postseason", fontdict={'size':24, 'fontweight':'bold'}, y=1.03)
 
@@ -524,7 +522,7 @@ print table
 
 # plot payroll rank of WS winners by year
 plt.rc('font', size=14)
-fig = plt.figure(figsize=(9,7))
+fig = plt.figure(figsize=(10,7))
 ax = fig.add_subplot(111, axisbg='#E0E0E0')
 ax.grid(axis='y', linewidth=2, ls='-', color='#ffffff')
 ax.grid(axis='x', linewidth=2, ls='-', color='#ffffff')
@@ -541,43 +539,13 @@ for yr in np.arange(1991, 2014):
     plt.scatter(thisyear.year, thisyear.mad_salary, s=60, alpha=0.6, zorder=1)
 
 ax.set_xlim([1989, 2015])
-ax.set_ylabel("Normalized Team Payroll", fontsize=20)
+ax.set_ylabel("Normalized Team Payroll (MADs)", fontsize=16)
 
 ax.legend(['WS Winners'], loc='upper left')
 fig.suptitle("Who wins the World Series?", fontdict={'size':24, 'fontweight':'bold'}, y=1.03)
 ax.set_title("Using team payroll normalized by deviations from median", y=1.02)
-
-# <headingcell level=1>
-
-# Heatmap of wins vs cost
+plt.savefig(r'C:\Users\Tyler\Desktop\foo.png', dpi=100, bbox_inches='tight')
 
 # <codecell>
 
-fig = plt.figure(figsize=(10,8))
-#plt.imshow(heatmap, extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], aspect='auto', 
-           #interpolation='None')
-#fig = plt.figure()
-c = stats.playoffs > 3
-out = plt.hexbin(stats.std_salary, stats.wpct, C=c, gridsize=15, cmap=plt.cm.YlOrRd, reduce_C_function=np.sum)
-plt.axis('normal')
-plt.colorbar()
-plt.title("Number of WS Winners")
-plt.xlabel("Std from the mean")
-plt.ylabel("Win Percenage")
-
-# <headingcell level=1>
-
-# Percent of teams in each std group to make playoffs/win WS
-
-# <codecell>
-
-# find num of teams in each bin group
-al, locs = np.histogram(stats.std_salary, bins=range(-2,5))
-po, locs = np.histogram(stats[stats.playoffs > 0].std_salary, bins=range(-2,5))
-
-plt.bar(locs[:-1]-.5, np.array(po).astype(float)/al, 0.8)
-
-# <headingcell level=2>
-
-# Percent of teams in each quartile to make playoffs/win WS
 
