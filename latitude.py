@@ -121,8 +121,8 @@ raw = json.loads(buf)
 fh.close()
 
 ld = pd.DataFrame(raw['locations'])
-ld.rename(columns={'latitudeE7':'latitude', 'longitudeE7':'longitude', 'timestampMs':'timestamp'}, inplace=True)
 del raw
+ld.rename(columns={'latitudeE7':'latitude', 'longitudeE7':'longitude', 'timestampMs':'timestamp'}, inplace=True)
 ld['latitude'] = ld['latitude']/float(1e7)
 ld['longitude'] = ld['longitude']/float(1e7)
 ld['timestamp'] = ld['timestamp'].map(lambda x: float(x)/1000)
@@ -143,13 +143,11 @@ shapefilename = helpers.user_prefix() + r'data\Neighborhoods\WGS84\Neighborhoods
 #shapefilename = helpers.user_prefix() + r'data\Shorelines\WGS84\Shorelines'
 
 shp = fiona.open(shapefilename+'.shp')
-bds = shp.bounds
+coords = shp.bounds
 shp.close()
-extra = 0.01
-ll = (bds[0], bds[1])
-ur = (bds[2], bds[3])
-coords = list(chain(ll, ur))
+
 w, h = coords[2] - coords[0], coords[3] - coords[1]
+extra = 0.01
 
 # <codecell>
 
@@ -193,10 +191,10 @@ out = m2.readshapefile(
 
 # set up a map dataframe
 df_map = pd.DataFrame({
-    'poly': [Polygon(xy) for xy in m.seattle],
-    'name': [nhood['S_HOOD'] for nhood in m.seattle_info]})
-df_map['area_m'] = df_map['poly'].map(lambda x: x.area)
-df_map['area_km'] = df_map['area_m'] / 100000
+    'poly': [Polygon(hood_points) for hood_points in m.seattle],
+    'name': [hood['S_HOOD'] for hood in m.seattle_info]})
+#df_map['area_m'] = df_map['poly'].map(lambda x: x.area)
+#df_map['area_km'] = df_map['area_m'] / 100000
 #df_map['poly'].append(Polygon(m2.water[0]))
 
 # <codecell>
@@ -204,13 +202,17 @@ df_map['area_km'] = df_map['area_m'] / 100000
 # Create Point objects in map coordinates from dataframe lon and lat values
 #ld['distfromhome'] = distance_on_unit_sphere(ld.latitude, ld.longitude, 47.663794, -122.335812)*6367.1
 #ld['distfromwork'] = distance_on_unit_sphere(ld.latitude, ld.longitude, 47.639906, -122.378381)*6367.1
+
+#Remove locations near work and home
 #ld = ld[(ld.distfromhome > 0.3) & (ld.distfromwork > 0.5)].reset_index(drop=True)
 
-map_points = pd.Series([Point(m(mapped_x, mapped_y)) for mapped_x, mapped_y in zip(ld['longitude'], ld['latitude'])])
-
-all_points = MultiPoint(list(map_points.values))
+# Convert our latitude and longitude into Basemap cartesian map coordinates
+mapped_points = [Point(m(mapped_x, mapped_y)) for mapped_x, mapped_y in zip(ld['longitude'], ld['latitude'])]
+all_points = MultiPoint(mapped_points)
+# Prep essentially optimizes the polygons for faster computation
 hood_polygons = prep(MultiPolygon(list(df_map['poly'].values)))
-
+# Filter out the points that do not fall within the map we're making
+# and simultaneously count how many points fall within each polygon
 city_points = filter(hood_polygons.contains, all_points)
 
 # <headingcell level=2>
@@ -219,12 +221,43 @@ city_points = filter(hood_polygons.contains, all_points)
 
 # <codecell>
 
+from helpers import tic, toc
+import copy
+
+# <codecell>
+
 # Compute the points that belong in each neighborhood
-def num_of_contained_points(apolygon, city_points):
-    return int(len(filter(prep(apolygon).contains, city_points)))
-    
-df_map['hood_count'] = df_map['poly'].apply(num_of_contained_points, args=(city_points,))
-#df_map['hood_count'] = df_map['poly'].map(lambda x: int(len(filter(prep(x).contains, city_points))))b
+tic()
+test_city_points = copy.copy(city_points)
+
+def num_of_contained_points(apolygon, test_city_points):
+    pts = filter(prep(apolygon).contains, test_city_points)))
+    test_city_points = list(set(test_city_points)-set(pts))
+    return len(pts)
+# 6 minutes. WOw. 3sec per hood, 121 hoods, 8.7us/contains() calculation.
+df_map['hood_count'] = df_map['poly'].apply(num_of_contained_points, args=(test_city_points,))
+toc()
+
+# <codecell>
+
+# Compute the points that belong in each neighborhood
+tic()
+test_city_points = copy.copy(city_points)
+
+def num_of_contained_points(apolygon, test_city_points):
+    pts = filter(prep(apolygon).contains, test_city_points)
+    test_city_points = list(set(test_city_points)-set(pts))
+    return len(pts)
+# 6 minutes. WOw. 3sec per hood, 121 hoods, 8.7us/contains() calculation.
+xx = df_map['poly'][110:120].apply(num_of_contained_points, args=(test_city_points,))
+toc()
+
+# <codecell>
+
+t = set(test_city_points)
+s = set(test_city_points[3000:4000])
+print len(t)
+print len(t-s)
 
 # <codecell>
 

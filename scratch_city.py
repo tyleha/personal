@@ -67,4 +67,43 @@ msg.keys()
 
 # <codecell>
 
+import pandas as pd
+
+# <codecell>
+
+df = pd.DataFrame({'a': [0, 3], 'b': [1, 4], 'c': [2, 5]})
+df = pd.concat((pd.DataFrame({'a': [10], 'b': [10], 'c': [10]}), df))
+print df
+for row, stuff in df.iteritems():
+    print row
+    print stuff
+#df = df*-1
+#xx = df.cumsum()
+#xx.fillna(0)
+#xx =xx- 10
+#df
+
+df.map()
+
+# <codecell>
+
+df.diff()
+
+# <codecell>
+
+df.diff(-1)
+
+# <codecell>
+
+Sample DataFrame 
+     a   b   c
+1    10  10  10
+0    0   1   2
+1    3   4   5
+
+
+New DataFrame created
+     a     b    c
+0    -10   -9   -8
+1    -13    5    3
 
