@@ -72,7 +72,8 @@ def colorbar_index(ncolors, cmap, labels=None, **kwargs):
     Takes a standard colourmap, and discretises it,
     then draws a color bar with correctly aligned labels
     """
-    cmap = cmap_discretize(cmap, ncolors)
+    import pdb; pdb.set_trace()
+    #cmap = cmap_discretize(cmap, ncolors)
     mappable = cm.ScalarMappable(cmap=cmap)
     mappable.set_array([])
     mappable.set_clim(-0.5, ncolors+0.5)
@@ -221,45 +222,34 @@ city_points = filter(hood_polygons.contains, all_points)
 
 # <codecell>
 
+# Compute the points that belong in each neighborhood
 from helpers import tic, toc
 import copy
-
-# <codecell>
-
-# Compute the points that belong in each neighborhood
 tic()
-test_city_points = copy.copy(city_points)
 
-def num_of_contained_points(apolygon, test_city_points):
-    pts = filter(prep(apolygon).contains, test_city_points)))
+test_city_points = copy.copy(city_points)
+hood_count = np.zeros(len(df_map))
+
+idxs = range(len(df_map))
+idxs.insert(0, idxs.pop(df_map[df_map.name.str.contains('Interbay')].index[0]))
+idxs.insert(0, idxs.pop(idxs.index(df_map[df_map.name.str.contains('Wallingford')].index[0])))
+
+for idx in idxs:
+    pts = filter(prep(df_map.ix[idx].poly).contains, test_city_points)
     test_city_points = list(set(test_city_points)-set(pts))
-    return len(pts)
-# 6 minutes. WOw. 3sec per hood, 121 hoods, 8.7us/contains() calculation.
-df_map['hood_count'] = df_map['poly'].apply(num_of_contained_points, args=(test_city_points,))
+    hood_count[idx] = len(pts)
+    
+df_map['hood_count'] = hood_count
 toc()
 
-# <codecell>
-
-# Compute the points that belong in each neighborhood
-tic()
-test_city_points = copy.copy(city_points)
-
-def num_of_contained_points(apolygon, test_city_points):
-    pts = filter(prep(apolygon).contains, test_city_points)
-    test_city_points = list(set(test_city_points)-set(pts))
-    return len(pts)
-# 6 minutes. WOw. 3sec per hood, 121 hoods, 8.7us/contains() calculation.
-xx = df_map['poly'][110:120].apply(num_of_contained_points, args=(test_city_points,))
-toc()
+# The code that actually needs to go into the blog:
+# def num_of_contained_points(apolygon, city_points):
+#     return int(len(filter(prep(apolygon).contains, city_points)))
+    
+# df_map['hood_count'] = df_map['poly'].apply(num_of_contained_points, args=(city_points,))
 
 # <codecell>
 
-t = set(test_city_points)
-s = set(test_city_points[3000:4000])
-print len(t)
-print len(t-s)
-
-# <codecell>
 
 df_map['hood_perc'] = df_map.hood_count/df_map.hood_count.sum()
 df_map['hood_hours'] = df_map.hood_count/60.
@@ -267,41 +257,36 @@ df_map['hood_hours'] = df_map.hood_count/60.
 # <codecell>
 
 from pysal.esda.mapclassify import Natural_Breaks
-from matplotlib.colors import Normalize
+from matplotlib.colors import Normalize as norm
 
 # <codecell>
 
 # Calculate Jenks natural breaks for density
 breaks = Natural_Breaks(df_map[df_map['hood_hours'] > 0].hood_hours, initial=300, k=5)
+df_map['jenks_bins'] = -1 #default value if no data exists for this bin
+df_map['jenks_bins'][df_map.hood_count > 0] = breaks.yb
 
-jb = pd.DataFrame({'jenks_bins': breaks.yb}, index=df_map[df_map.hood_count > 0].index)
-try:
-    df_map = df_map.join(jb)
-except:
-    df_map.jenks_bins = jb
-df_map.jenks_bins.fillna(-1, inplace=True)
-
-jenks_labels = ["> %d hours"%(perc) for perc in breaks.bins[:-1]]
-jenks_labels = ['Have never been here', "> 0 hours"]+jenks_labels
+jenks_labels = ['Never been here', "> 0 hours"]+["> %d hours"%(perc) for perc in breaks.bins[:-1]]
 print jenks_labels
 
 # <codecell>
 
+# Define your own breaks
 breaks = [0., 4., 24., 64., 135., 1e12]
+# or use breaks from Natural_Breaks
 def self_categorize(entry, breaks):
     for i in range(len(breaks)-1):
         if entry > breaks[i] and entry <= breaks[i+1]:
             return i
-    else:
-        return -1
-jb = df_map.hood_hours.apply(self_categorize, args=(breaks,))
-try:
-    df_map = df_map.join(jb)
-except:
-    df_map.jenks_bins = jb
-jenks_labels = ["> %d hours"%(perc) for perc in breaks[:-1]]
-jenks_labels = ['Have never been here']+jenks_labels
+    return -1
+df_map['jenks_bins'] = df_map.hood_hours.apply(self_categorize, args=(breaks,))
+
+jenks_labels = ['Never been here']+["> %d hours"%(perc) for perc in breaks[:-1]]
 print jenks_labels
+
+# <codecell>
+
+from matplotlib.colors import BoundaryNorm, ColorbarBase
 
 # <codecell>
 
@@ -309,20 +294,25 @@ plt.clf()
 figwidth = 14
 fig = plt.figure(figsize=(figwidth, figwidth*h/w))
 ax = fig.add_subplot(111, axisbg='w', frame_on=False)
+# fig, ax = plt.subplots(1,1, figsize=(6,6))
 
-# use a blue colour ramp - we'll be converting it to a map using cmap()
 cmap = plt.get_cmap('Blues')
 # draw wards with grey outlines
 df_map['patches'] = df_map['poly'].map(lambda x: PolygonPatch(x, ec='#111111', lw=.8, alpha=1., zorder=4))
 pc = PatchCollection(df_map['patches'], match_original=True)
 # impose our colour map onto the patch collection
-norm = Normalize()
-pc.set_facecolor(cmap(norm(df_map['jenks_bins'].values)))
+cmap_list = [cmap(val) for val in (df_map.jenks_bins.values - df_map.jenks_bins.values.min())/(
+                  df_map.jenks_bins.values.max()-float(df_map.jenks_bins.values.min()))]
+pc.set_facecolor(cmap_list)
 ax.add_collection(pc)
 
-# Add a colour bar
-cb = colorbar_index(ncolors=len(jenks_labels), cmap=cmap, shrink=0.5, labels=jenks_labels)
-cb.ax.tick_params(labelsize=16)
+# Add a BoundaryNorm colorbar, which is defined on set intervals
+norm = BoundaryNorm(range(-1, len(jenks_labels)), cmap.N)
+# ax2 = fig.add_axes([0.95, 0.1, 0.03, 0.8])
+# cb = ColorbarBase(ax2, cmap=cmap, norm=norm, spacing='proportional', ticks=range(-1, len(jenks_labels)), 
+#                                boundaries=range(-1, len(jenks_labels)), format='%1i')
+#cb = colorbar_index(ncolors=len(jenks_labels), cmap=cmap, shrink=0.5, labels=jenks_labels)
+#cb.ax.tick_params(labelsize=16)
 
 """
 # Bin method, copyright and source data info
@@ -334,7 +324,7 @@ smallprint = ax.text(
     color='#555555',
     transform=ax.transAxes)
 """
-# Draw a map scale
+#Draw a map scale
 m.drawmapscale(
     coords[0] + 0.08, coords[1] + -0.002,
     coords[0], coords[1],
@@ -347,8 +337,8 @@ m.drawmapscale(
 
 # this will set the image width to 722px at 100dpi
 plt.title("Time Spent in Seattle Neighborhoods", fontsize=16)
-plt.tight_layout()
-plt.savefig('data/chloropleth.png', dpi=300, frameon=False, transparent=True)
+# plt.tight_layout()
+#plt.savefig('chloropleth.png', dpi=300, frameon=False, transparent=False)
 
 # <headingcell level=2>
 
