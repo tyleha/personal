@@ -82,6 +82,32 @@ stats.team = stats.team.map(team_groups)
 # Let's just look at years where we have salary info
 stats = stats[stats.year > 1976].reset_index(drop=True)
 
+# <codecell>
+
+# Find the team rank in salary for each year
+def add_rank(group):
+    group['rank_salary'] = group.salary.rank(ascending=False)
+    return group
+stats = stats.groupby('year').apply(add_rank)
+
+# Compute the number of standard deviations above the mean
+def add_median(group):
+    group['std_salary'] = (group.salary - group.salary.mean())/group.salary.std()
+    return group
+stats = stats.groupby('year').apply(add_median)
+
+# Compute the MAD (median absolute deviation)
+def add_mad(group):
+    median = group.salary.median()
+    mad = (group.salary - median).abs().median()*1.4826
+    group['mad_salary'] = (group.salary - median)/mad
+    return group
+stats = stats.groupby('year').apply(add_mad)
+
+# Add Win%
+stats['wpct'] = stats.w.astype(float)/(stats.w + stats.l)
+stats['expected_wins'] = stats.wpct * 162
+
 # <headingcell level=1>
 
 # Total League Salary
@@ -225,32 +251,6 @@ ax.legend(loc='upper left')
 # <headingcell level=1>
 
 # Wins vs Cost
-
-# <codecell>
-
-# Find the team rank in salary for each year
-def add_rank(group):
-    group['rank_salary'] = group.salary.rank(ascending=False)
-    return group
-stats = stats.groupby('year').apply(add_rank)
-
-# Compute the number of standard deviations above the mean
-def add_median(group):
-    group['std_salary'] = (group.salary - group.salary.mean())/group.salary.std()
-    return group
-stats = stats.groupby('year').apply(add_median)
-
-# Compute the MAD (median absolute deviation)
-def add_mad(group):
-    median = group.salary.median()
-    mad = (group.salary - median).abs().median()*1.4826
-    group['mad_salary'] = (group.salary - median)/mad
-    return group
-stats = stats.groupby('year').apply(add_mad)
-
-# Add Win%
-stats['wpct'] = stats.w.astype(float)/(stats.w + stats.l)
-stats['expected_wins'] = stats.wpct * 162
 
 # <codecell>
 
@@ -436,7 +436,7 @@ def playoff_wins(playoff):
         return 0
     if 'NLWC' in playoff or 'ALWC' in playoff or 'LDS' in playoff:
         return int(re.findall('\d', playoff)[1])
-    elif 'ALCS' in playoff or 'NLCS' in playoff:
+    elif 'LCS' in playoff:
         return 3+int(re.findall('\d', playoff)[1])
     elif 'Lost WS' in playoff:
         return 3+4+int(re.findall('\d', playoff)[1])
@@ -448,11 +448,11 @@ def renum_playoffs(playoff):
         return 0
     if 'NLWC' in playoff or 'ALWC' in playoff or 'LDS' in playoff:
         return 1
-    elif 'ALCS' in playoff or 'NLCS' in playoff:
+    elif 'LCS' in playoff:
         return 2
     elif 'Lost WS' in playoff:
         return 3
-    elif 'Won' in playoff:
+    elif 'Won WS' in playoff:
         return 4
 
 stats['playoff_wins'] = stats.playoffs.map(playoff_wins)
@@ -460,6 +460,7 @@ stats['playoffs'] = stats.playoffs.map(renum_playoffs)
 
 # <codecell>
 
+stats['quartile'] = pd.qcut(stats.mad_salary, q=[0, .25, .5, .75, 1.], labels=['1', '2', '3', '4'])
 import copy
 stats_copy = copy.deepcopy(stats)
 stats_new = stats_copy[(stats_copy.year >= 2003) & (stats_copy.year < 2103)]
@@ -468,13 +469,8 @@ stats_since94 = stats[stats.year > 1994]
 
 # <codecell>
 
-stats_old['quartile'] = pd.qcut(stats_old.mad_salary, q=[0, .25, .5, .75, 1.], labels=['1', '2', '3', '4'])
 quartiles_old = stats_old.groupby('quartile')
-
-stats_new['quartile'] = pd.qcut(stats_new.mad_salary, q=[0, .25, .5, .75, 1.], labels=['1', '2', '3', '4'])
 quartiles_new = stats_new.groupby('quartile')
-
-stats_since94['quartile'] = pd.qcut(stats_since94.mad_salary, q=[0, .25, .5, .75, 1.], labels=['1', '2', '3', '4'])
 quartiles = stats_since94.groupby('quartile')
 
 # <codecell>
@@ -495,18 +491,21 @@ colors = [cm(c) for c in [0.6,0.7,0.8,0.9]]
 
 
 ax.bar(ind+margin, quartiles_old.playoffs.agg(lambda x: np.sum(x >= 1))/quartiles_old.playoffs.count(), 
-        width, color=cm(0.9), label='1995-2003')
+        width, color=cm(0.9), label='1995-2002')
 ax.bar(ind+width+margin, quartiles_new.playoffs.agg(lambda x: np.sum(x >= 1))/quartiles_new.playoffs.count(), 
-        width, color=cm(0.6), label='2004-2013')
+        width, color=cm(0.6), label='2003-2013')
+ax.plot([ind[0], ind[3]+width+0.5+margin], [8./30, 8./30], 'b--', linewidth=4, zorder=3, 
+        alpha=0.6, dashes=[14, 5])
 ax.set_xticks(ind+0.5)
 ax.set_xticklabels(['Q1', 'Q2', 'Q3', 'Q4'][::-1])
 
 ax.legend(loc='upper left')
-
+ax.text(0.5, 0.28, 'Expected \"fair\" rate')
 ax.set_ylabel("Fraction of teams to reach Playoffs")
 ax.set_xlabel("Payroll Quartile")
 ax.set_title("Broken down by payroll quartile pre and post Luxury Tax", y=1.02)
 fig.suptitle("Rate of reaching the postseason", fontdict={'size':24, 'fontweight':'bold'}, y=1.03)
+
 
 # <codecell>
 
@@ -531,20 +530,29 @@ ax.set_axisbelow(True)
 cm = plt.get_cmap('Reds')
 winners = stats[(stats.year > 1990) & (stats.playoffs == 4)]
 
-for yr in np.arange(1991, 2014):
+for yr in np.arange(1991, 2015):
     if yr == 1994:
         continue
     thisyear = stats[stats.year == yr]
-    plt.scatter(yr, winners[winners.year == yr].mad_salary, edgecolor='k', s=160, color='r', zorder=2)
+    try:
+        plt.scatter(yr, winners[winners.year == yr].mad_salary, edgecolor='k', s=160, color='r', zorder=2)
+    except ValueError:
+        plt.scatter(yr, thisyear[thisyear.team.str.contains('Royals')].mad_salary, edgecolor='k', s=350, 
+                    color='#74B4FA', zorder=2, alpha=0.8)
+        ax.text(yr+0.6, thisyear[thisyear.team.str.contains('Royals')].mad_salary-0.1, 'KC')
+        plt.scatter(yr, thisyear[thisyear.team.str.contains('Giants')].mad_salary, edgecolor='k', s=350, 
+                    color='#F2552C', zorder=2, alpha=0.8)
+        ax.text(yr+0.6, thisyear[thisyear.team.str.contains('Giants')].mad_salary-0.1, 'SF')
     plt.scatter(thisyear.year, thisyear.mad_salary, s=60, alpha=0.6, zorder=1)
 
-ax.set_xlim([1989, 2015])
+ax.set_xlim([1989, 2016])
 ax.set_ylabel("Normalized Team Payroll (MADs)", fontsize=16)
 
 ax.legend(['WS Winners'], loc='upper left')
 fig.suptitle("Who wins the World Series?", fontdict={'size':24, 'fontweight':'bold'}, y=1.03)
 ax.set_title("Using team payroll normalized by deviations from median", y=1.02)
-plt.savefig(r'C:\Users\Tyler\Desktop\foo.png', dpi=100, bbox_inches='tight')
+fig.text(0.12, 0.03, "BeneathData.com", fontsize=16, color='#555555')
+plt.savefig(r'C:\Users\thartley\Desktop\foo.png', dpi=100, bbox_inches='tight', pad_inches=0.5)
 
 # <codecell>
 
