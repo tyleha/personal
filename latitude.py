@@ -63,50 +63,6 @@ def distance_on_unit_sphere(lat1, long1, lat2, long2):
     # in your favorite set of units to get length.
     return arc
 
-# <codecell>
-
-# Convenience functions for working with colour ramps and bars
-def colorbar_index(ncolors, cmap, labels=None, **kwargs):
-    """
-    This is a convenience function to stop you making off-by-one errors
-    Takes a standard colourmap, and discretises it,
-    then draws a color bar with correctly aligned labels
-    """
-    import pdb; pdb.set_trace()
-    #cmap = cmap_discretize(cmap, ncolors)
-    mappable = cm.ScalarMappable(cmap=cmap)
-    mappable.set_array([])
-    mappable.set_clim(-0.5, ncolors+0.5)
-    colorbar = plt.colorbar(mappable, **kwargs)
-    colorbar.set_ticks(np.linspace(0, ncolors, ncolors))
-    colorbar.set_ticklabels(range(ncolors))
-    if labels:
-        colorbar.set_ticklabels(labels)
-    return colorbar
-
-def cmap_discretize(cmap, N):
-    """
-    Return a discrete colormap from the continuous colormap cmap.
-
-        cmap: colormap instance, eg. cm.jet. 
-        N: number of colors.
-
-    Example
-        x = resize(arange(100), (5,100))
-        djet = cmap_discretize(cm.jet, 5)
-        imshow(x, cmap=djet)
-
-    """
-    if type(cmap) == str:
-        cmap = get_cmap(cmap)
-    colors_i = np.concatenate((np.linspace(0, 1., N), (0., 0., 0., 0.)))
-    colors_rgba = cmap(colors_i)
-    indices = np.linspace(0, 1., N + 1)
-    cdict = {}
-    for ki, key in enumerate(('red', 'green', 'blue')):
-        cdict[key] = [(indices[i], colors_rgba[i - 1, ki], colors_rgba[i, ki]) for i in xrange(N + 1)]
-    return matplotlib.colors.LinearSegmentedColormap(cmap.name + "_%d" % N, cdict, 1024)
-
 # <headingcell level=4>
 
 # Load Latitude data
@@ -262,7 +218,7 @@ from matplotlib.colors import Normalize as norm
 # <codecell>
 
 # Calculate Jenks natural breaks for density
-breaks = Natural_Breaks(df_map[df_map['hood_hours'] > 0].hood_hours, initial=300, k=5)
+breaks = Natural_Breaks(df_map[df_map['hood_hours'] > 0].hood_hours, initial=300, k=3)
 df_map['jenks_bins'] = -1 #default value if no data exists for this bin
 df_map['jenks_bins'][df_map.hood_count > 0] = breaks.yb
 
@@ -286,7 +242,21 @@ print jenks_labels
 
 # <codecell>
 
-from matplotlib.colors import BoundaryNorm, ColorbarBase
+def custom_colorbar(cmap, ncolors, labels, **kwargs):
+    from matplotlib.colors import BoundaryNorm
+    
+    """Create a custom, discretized colorbar with correctly formatted/aligned labels.
+    """
+    norm = BoundaryNorm(range(-1, ncolors), cmap.N)
+    mappable = cm.ScalarMappable(cmap=cmap, norm=norm)
+    mappable.set_array([])
+    mappable.set_clim(-0.5, ncolors+0.5)
+    colorbar = plt.colorbar(mappable, **kwargs)
+    colorbar.set_ticks(np.linspace(-1, ncolors, ncolors+2)+0.5)
+    colorbar.set_ticklabels(range(-1, ncolors))
+    colorbar.set_ticklabels(labels)
+    return colorbar
+    
 
 # <codecell>
 
@@ -305,14 +275,8 @@ cmap_list = [cmap(val) for val in (df_map.jenks_bins.values - df_map.jenks_bins.
                   df_map.jenks_bins.values.max()-float(df_map.jenks_bins.values.min()))]
 pc.set_facecolor(cmap_list)
 ax.add_collection(pc)
-
-# Add a BoundaryNorm colorbar, which is defined on set intervals
-norm = BoundaryNorm(range(-1, len(jenks_labels)), cmap.N)
-# ax2 = fig.add_axes([0.95, 0.1, 0.03, 0.8])
-# cb = ColorbarBase(ax2, cmap=cmap, norm=norm, spacing='proportional', ticks=range(-1, len(jenks_labels)), 
-#                                boundaries=range(-1, len(jenks_labels)), format='%1i')
-#cb = colorbar_index(ncolors=len(jenks_labels), cmap=cmap, shrink=0.5, labels=jenks_labels)
-#cb.ax.tick_params(labelsize=16)
+# ax.plot()
+# ax.set_aspect('equal')
 
 """
 # Bin method, copyright and source data info
@@ -324,6 +288,7 @@ smallprint = ax.text(
     color='#555555',
     transform=ax.transAxes)
 """
+
 #Draw a map scale
 m.drawmapscale(
     coords[0] + 0.08, coords[1] + -0.002,
@@ -333,12 +298,23 @@ m.drawmapscale(
     barstyle='fancy', labelstyle='simple',
     fillcolor1='w', fillcolor2='#555555',
     fontcolor='#555555',
-    zorder=5)
+    zorder=5,
+    ax=ax,)
 
-# this will set the image width to 722px at 100dpi
-plt.title("Time Spent in Seattle Neighborhoods", fontsize=16)
+cbar = custom_colorbar(cmap, len(jenks_labels), jenks_labels, shrink=0.5)
+cbar.ax.tick_params(labelsize=16)
+
+ax.set_title("Time Spent in Seattle Neighborhoods", fontsize=16)
 # plt.tight_layout()
 #plt.savefig('chloropleth.png', dpi=300, frameon=False, transparent=False)
+
+# <codecell>
+
+plt.colorbar()
+
+# <codecell>
+
+plt.show()
 
 # <headingcell level=2>
 

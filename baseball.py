@@ -554,6 +554,26 @@ ax.set_title("Using team payroll normalized by deviations from median", y=1.02)
 fig.text(0.12, 0.03, "BeneathData.com", fontsize=16, color='#555555')
 plt.savefig(r'C:\Users\thartley\Desktop\foo.png', dpi=100, bbox_inches='tight', pad_inches=0.5)
 
+# <headingcell level=2>
+
+# Scratch
+
+# <codecell>
+
+st = stats[(stats.year > 1991) & (stats.mad_salary > 2)]
+
+# <codecell>
+
+st.team.value_counts()
+
+# <codecell>
+
+st.year.value_counts()
+
+# <codecell>
+
+st.sort(columns=['team', 'year'])
+
 # <codecell>
 
 
