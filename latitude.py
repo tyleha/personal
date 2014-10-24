@@ -237,84 +237,65 @@ def self_categorize(entry, breaks):
     return -1
 df_map['jenks_bins'] = df_map.hood_hours.apply(self_categorize, args=(breaks,))
 
-jenks_labels = ['Never been here']+["> %d hours"%(perc) for perc in breaks[:-1]]
+jenks_labels = ['Never been\nhere']+["> %d hours"%(perc) for perc in breaks[:-1]]
 print jenks_labels
 
 # <codecell>
 
-def custom_colorbar(cmap, ncolors, labels, **kwargs):
-    from matplotlib.colors import BoundaryNorm
-    
+def custom_colorbar(cmap, ncolors, labels, **kwargs):    
     """Create a custom, discretized colorbar with correctly formatted/aligned labels.
+    
+    cmap: the matplotlib colormap object you plan on using for your graph
+    ncolors: (int) the number of discrete colors available
+    labels: the list of labels for the colorbar. Should be the same length as ncolors.
     """
-    norm = BoundaryNorm(range(-1, ncolors), cmap.N)
-    mappable = cm.ScalarMappable(cmap=cmap, norm=norm)
+    from matplotlib.colors import BoundaryNorm
+    from matplotlib.cm import ScalarMappable
+        
+    norm = BoundaryNorm(range(0, ncolors), cmap.N)
+    mappable = ScalarMappable(cmap=cmap, norm=norm)
     mappable.set_array([])
     mappable.set_clim(-0.5, ncolors+0.5)
     colorbar = plt.colorbar(mappable, **kwargs)
-    colorbar.set_ticks(np.linspace(-1, ncolors, ncolors+2)+0.5)
-    colorbar.set_ticklabels(range(-1, ncolors))
+    colorbar.set_ticks(np.linspace(0, ncolors, ncolors+1)+0.5)
+    colorbar.set_ticklabels(range(0, ncolors))
     colorbar.set_ticklabels(labels)
     return colorbar
     
 
 # <codecell>
 
-plt.clf()
 figwidth = 14
 fig = plt.figure(figsize=(figwidth, figwidth*h/w))
 ax = fig.add_subplot(111, axisbg='w', frame_on=False)
-# fig, ax = plt.subplots(1,1, figsize=(6,6))
 
 cmap = plt.get_cmap('Blues')
-# draw wards with grey outlines
+# draw neighborhoods with grey outlines
 df_map['patches'] = df_map['poly'].map(lambda x: PolygonPatch(x, ec='#111111', lw=.8, alpha=1., zorder=4))
 pc = PatchCollection(df_map['patches'], match_original=True)
-# impose our colour map onto the patch collection
+# apply our custom color values onto the patch collection
 cmap_list = [cmap(val) for val in (df_map.jenks_bins.values - df_map.jenks_bins.values.min())/(
                   df_map.jenks_bins.values.max()-float(df_map.jenks_bins.values.min()))]
 pc.set_facecolor(cmap_list)
 ax.add_collection(pc)
-# ax.plot()
-# ax.set_aspect('equal')
-
-"""
-# Bin method, copyright and source data info
-smallprint = ax.text(
-    1.03, 0,
-    'Classification method: natural breaks\nContains Ordnance Survey data\n$\copyright$ Crown copyright and database right 2013\nPlaque data from http://openplaques.org',
-    ha='right', va='bottom',
-    size=4,
-    color='#555555',
-    transform=ax.transAxes)
-"""
 
 #Draw a map scale
-m.drawmapscale(
-    coords[0] + 0.08, coords[1] + -0.002,
-    coords[0], coords[1],
-    10.,
-    fontsize=16,
-    barstyle='fancy', labelstyle='simple',
-    fillcolor1='w', fillcolor2='#555555',
-    fontcolor='#555555',
-    zorder=5,
-    ax=ax,)
+m.drawmapscale(coords[0] + 0.08, coords[1] + -0.01,
+    coords[0], coords[1], 10.,
+    fontsize=16, barstyle='fancy', labelstyle='simple',
+    fillcolor1='w', fillcolor2='#555555', fontcolor='#555555',
+    zorder=5, ax=ax,)
 
-cbar = custom_colorbar(cmap, len(jenks_labels), jenks_labels, shrink=0.5)
+# ncolors+1 because we're using a "zero-th" color
+cbar = custom_colorbar(cmap, ncolors=len(jenks_labels)+1, labels=jenks_labels, shrink=0.5)
 cbar.ax.tick_params(labelsize=16)
 
-ax.set_title("Time Spent in Seattle Neighborhoods", fontsize=16)
-# plt.tight_layout()
-#plt.savefig('chloropleth.png', dpi=300, frameon=False, transparent=False)
-
-# <codecell>
-
-plt.colorbar()
-
-# <codecell>
-
-plt.show()
+fig.suptitle("    Time Spent in Seattle Neighborhoods", fontdict={'size':24, 'fontweight':'bold'}, y=0.92)
+ax.set_title("  Using location data collected from my Android phone via Google Takeout", fontsize=14, y=0.98)
+ax.text(1.35, 0.04, "Collected from 2012-2014 on Android 4.2-4.4\nGeographic data provided by data.seattle.gov", 
+        ha='right', color='#555555', style='italic', transform=ax.transAxes)
+ax.text(1.35, 0.01, "BeneathData.com", color='#555555', fontsize=16, ha='right', transform=ax.transAxes)
+plt.savefig('chloropleth.png', dpi=300, frameon=False, transparent=False, bbox_inches='tight', pad_inches=0.5)
 
 # <headingcell level=2>
 
@@ -322,69 +303,49 @@ plt.show()
 
 # <codecell>
 
+
+# <codecell>
+
 """PLOT A HEXBIN MAP OF LOCATION
 """
-
-helpers.tic()
-
-# draw ward patches from polygons
-df_map['patches'] = df_map['poly'].map(lambda x: PolygonPatch(
-    x, fc='#555555', ec='#555555', lw=1, alpha=1, zorder=0))
-
-plt.clf()
 figwidth = 14
 fig = plt.figure(figsize=(figwidth, figwidth*h/w))
 ax = fig.add_subplot(111, axisbg='w', frame_on=False)
 
-# plot boroughs by adding the PatchCollection to the axes instance
+# draw neighborhood patches from polygons
+df_map['patches'] = df_map['poly'].map(lambda x: PolygonPatch(
+    x, fc='#555555', ec='#555555', lw=1, alpha=1, zorder=0))
+# plot neighborhoods by adding the PatchCollection to the axes instance
 ax.add_collection(PatchCollection(df_map['patches'].values, match_original=True))
 
 # the mincnt argument only shows cells with a value >= 1
 # hexbin wants np arrays, not plain lists
+hexsize = 40
 hx = m.hexbin(
     np.array([geom.x for geom in city_points]),
     np.array([geom.y for geom in city_points]),
-    gridsize=(70, int(70*h/w)),
-    bins='log',
-    mincnt=1,
-    edgecolor='none',
-    alpha=1.,
+    gridsize=(hexsize, int(hexsize*h/w)), #critical to get regular hexagon, must stretch to map dimensions
+    bins='log', mincnt=1, edgecolor='none', alpha=1.,
     cmap=plt.get_cmap('Blues'))
 
+# Draw the patches again, but this time just their borders (to achieve borders over the hexbins)
 df_map['patches'] = df_map['poly'].map(lambda x: PolygonPatch(
     x, fc='none', ec='#FFFF99', lw=1, alpha=1, zorder=1))
 ax.add_collection(PatchCollection(df_map['patches'].values, match_original=True))
 
-# copyright and source data info
-smallprint = ax.text(
-    1.08, 0.0,
-    "Google Latitude data from 2010-2014\nProduced by Tyler Hartley\nInspired by sensitivecities.com",
-    ha='right', va='bottom',
-    size=figwidth/1.75,
-    color='#555555',
-    transform=ax.transAxes)
-
 # Draw a map scale
-m.drawmapscale(
-    coords[0] + 0.05, coords[1] - 0.01,
-    coords[0], coords[1],
-    4.,
-    units='mi',
-    barstyle='fancy', labelstyle='simple',
-    fillcolor1='w', fillcolor2='#555555',
-    fontcolor='#555555',
+m.drawmapscale(coords[0] + 0.05, coords[1] - 0.01,
+    coords[0], coords[1], 4.,
+    units='mi', barstyle='fancy', labelstyle='simple',
+    fillcolor1='w', fillcolor2='#555555', fontcolor='#555555',
     zorder=5)
 
-plt.title("Latitude Location History - Since 7/20/13")
-#plt.tight_layout()
-# this will set the image width to 722px at 100dpi
-#fig.set_size_inches(7., 10.5)
-plt.savefig('data/hexbin.png', dpi=300, frameon=False, transparent=True)
-
-helpers.toc()
-
-plt.show()
-
+fig.suptitle("My location density in Seattle", fontdict={'size':24, 'fontweight':'bold'}, y=0.92)
+ax.set_title("Using location data collected from my Android phone via Google Takeout", fontsize=14, y=0.98)
+ax.text(1.0, 0.03, "Collected from 2012-2014 on Android 4.2-4.4\nGeographic data provided by data.seattle.gov", 
+        ha='right', color='#555555', style='italic', transform=ax.transAxes)
+ax.text(1.0, 0.01, "BeneathData.com", color='#555555', fontsize=16, ha='right', transform=ax.transAxes)
+plt.savefig('hexbin.png', dpi=100, frameon=False, transparent=False, bbox_inches='tight', pad_inches=0.5)
 
 # <headingcell level=1>
 
