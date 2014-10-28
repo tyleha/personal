@@ -289,12 +289,12 @@ m.drawmapscale(coords[0] + 0.08, coords[1] + -0.01,
 cbar = custom_colorbar(cmap, ncolors=len(labels)+1, labels=labels, shrink=0.5)
 cbar.ax.tick_params(labelsize=16)
 
-fig.suptitle("    Time Spent in Seattle Neighborhoods", fontdict={'size':24, 'fontweight':'bold'}, y=0.92)
-ax.set_title("  Using location data collected from my Android phone via Google Takeout", fontsize=14, y=0.98)
+fig.suptitle("Time Spent in Seattle Neighborhoods", fontdict={'size':24, 'fontweight':'bold'}, y=0.92)
+ax.set_title("Using location data collected from my Android phone via Google Takeout", fontsize=14, y=0.98)
 ax.text(1.35, 0.04, "Collected from 2012-2014 on Android 4.2-4.4\nGeographic data provided by data.seattle.gov", 
         ha='right', color='#555555', style='italic', transform=ax.transAxes)
 ax.text(1.35, 0.01, "BeneathData.com", color='#555555', fontsize=16, ha='right', transform=ax.transAxes)
-plt.savefig('choropleth.png', dpi=100, frameon=True, transparent=False, bbox_inches='tight', pad_inches=0.5)
+plt.savefig('choropleth.png', dpi=100, frameon=False, bbox_inches='tight', pad_inches=0.5, facecolor='#F2F2F2')
 
 # <headingcell level=2>
 
@@ -341,7 +341,7 @@ ax.set_title("Using location data collected from my Android phone via Google Tak
 ax.text(1.0, 0.03, "Collected from 2012-2014 on Android 4.2-4.4\nGeographic data provided by data.seattle.gov", 
         ha='right', color='#555555', style='italic', transform=ax.transAxes)
 ax.text(1.0, 0.01, "BeneathData.com", color='#555555', fontsize=16, ha='right', transform=ax.transAxes)
-plt.savefig('hexbin.png', dpi=150, frameon=False, transparent=False, bbox_inches='tight', pad_inches=0.5)
+plt.savefig('hexbin.png', dpi=150, frameon=False, bbox_inches='tight', pad_inches=0.5, facecolor='#DEDEDE')
 
 # <headingcell level=1>
 
@@ -404,6 +404,10 @@ flights = flights.drop(_f.index).reset_index(drop=True)
 # constitutes flight. I personally don't ever take flights shorter than a couple hundred miles,
 # so let's remove any instances below 200km as a final measure.
 flights = flights[flights.distance > 200].reset_index(drop=True)
+
+# <codecell>
+
+flights.distance.sum()
 
 # <codecell>
 
