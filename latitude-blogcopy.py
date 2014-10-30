@@ -68,23 +68,18 @@ def distance_on_unit_sphere(lat1, long1, lat2, long2):
 
 # <codecell>
 
-try:
-    fh = open(r'C:\Users\Tyler\Documents\My Dropbox\LocationHistory_10_26_14.json')
-except:
-    fh = open(r'C:\Users\thartley\Documents\Dropbox\LocationHistory_8_18_14.json')
-buf = fh.read()
-raw = json.loads(buf)
-fh.close()
+with open('LocationHistory.json') as fh:
+    raw = json.loads(fh.read())
 
 ld = pd.DataFrame(raw['locations'])
-del raw
+del raw #free up some memory
 ld.rename(columns={'latitudeE7':'latitude', 'longitudeE7':'longitude', 'timestampMs':'timestamp'}, inplace=True)
-ld['latitude'] = ld['latitude']/float(1e7)
+# convert to typical units
+ld['latitude'] = ld['latitude']/float(1e7) 
 ld['longitude'] = ld['longitude']/float(1e7)
 ld['timestamp'] = ld['timestamp'].map(lambda x: float(x)/1000)
 ld['datetime'] = ld.timestamp.map(datetime.datetime.fromtimestamp)
-ld = ld[ld.timestamp > 1374303600.0] #time since Jul. 20, 2013 when data reporting increased
-ld = ld[ld.accuracy < 1000] #Ignore locations with location estimates over 1000m?
+ld = ld[ld.accuracy < 1000] #Ignore locations with location estimates over 1000m
 ld.reset_index(drop=True, inplace=True)
 
 # <headingcell level=4>
@@ -93,10 +88,7 @@ ld.reset_index(drop=True, inplace=True)
 
 # <codecell>
 
-#shp = fiona.open(r'C:\Users\thartley\Documents\Seattle_20City_20Limits\WGS84\Seattle City Limits')
-#r'C:\Users\thartley\Downloads\london\london_wards'
-shapefilename = helpers.user_prefix() + r'data\Neighborhoods\WGS84\Neighborhoods'
-#shapefilename = helpers.user_prefix() + r'data\Shorelines\WGS84\Shorelines'
+shapefilename = r'data\Neighborhoods\WGS84\Neighborhoods'
 
 shp = fiona.open(shapefilename+'.shp')
 coords = shp.bounds
@@ -113,35 +105,13 @@ m = Basemap(
     lat_0=np.mean([coords[1], coords[3]]),
     ellps = 'WGS84',
     llcrnrlon=coords[0] - extra * w,
-    llcrnrlat=coords[1] - (0.08 * h), 
+    llcrnrlat=coords[1] - (extra * h), 
     urcrnrlon=coords[2] + extra * w,
-    urcrnrlat=coords[3] + (extra+0.01 * h),
+    urcrnrlat=coords[3] + (extra * h),
     resolution='i',
     suppress_ticks=True)
 # Import the shapefile data to the Basemap 
 out = m.readshapefile(shapefilename, name='seattle', drawbounds=False, color='none', zorder=2)
-
-zzz ="""
-m2 = Basemap(
-    projection='tmerc',
-    lon_0=-122.3,
-    lat_0=47.6,
-    #lon_0=-2.,
-    #lat_0=49.,
-    ellps = 'WGS84',
-    llcrnrlon=coords[0] - extra * w,
-    llcrnrlat=coords[1] - extra + 0.01 * h,
-    urcrnrlon=coords[2] + extra * w,
-    urcrnrlat=coords[3] + extra + 0.01 * h,
-    lat_ts=0,
-    resolution='i',
-    suppress_ticks=True)
-out = m2.readshapefile(
-    helpers.user_prefix() + r'data\Shorelines\WGS84\Shorelines',
-    'water',
-    color='none',
-    zorder=2)
-"""
 
 # <codecell>
 
@@ -150,11 +120,6 @@ df_map = pd.DataFrame({
     'poly': [Polygon(hood_points) for hood_points in m.seattle],
     'name': [hood['S_HOOD'] for hood in m.seattle_info]
 })
-#df_map['area_m'] = df_map['poly'].map(lambda x: x.area)
-#df_map['area_km'] = df_map['area_m'] / 100000
-#df_map['poly'].append(Polygon(m2.water[0]))
-
-# <codecell>
 
 # Create Point objects in map coordinates from dataframe lon and lat values
 ld['distfromhome'] = distance_on_unit_sphere(ld.latitude, ld.longitude, 47.663794, -122.335812)*6367.1
@@ -221,14 +186,13 @@ breaks = Natural_Breaks(df_map[df_map['hood_hours'] > 0].hood_hours, initial=300
 df_map['jenks_bins'] = -1 #default value if no data exists for this bin
 df_map['jenks_bins'][df_map.hood_count > 0] = breaks.yb
 
-labels = ['Never been here', "> 0 hours"]+["> %d hours"%(perc) for perc in breaks.bins[:-1]]
-print labels
+jenks_labels = ['Never been here', "> 0 hours"]+["> %d hours"%(perc) for perc in breaks.bins[:-1]]
+print jenks_labels
 
 # <codecell>
 
 # Define your own breaks
 breaks = [0., 4., 24., 64., 135., 1e12]
-# or use breaks from Natural_Breaks
 def self_categorize(entry, breaks):
     for i in range(len(breaks)-1):
         if entry > breaks[i] and entry <= breaks[i+1]:
@@ -236,8 +200,8 @@ def self_categorize(entry, breaks):
     return -1
 df_map['jenks_bins'] = df_map.hood_hours.apply(self_categorize, args=(breaks,))
 
-labels = ['Never been\nhere']+["> %d hours"%(perc) for perc in breaks[:-1]]
-print labels
+jenks_labels = ['Never been\nhere']+["> %d hours"%(perc) for perc in breaks[:-1]]
+print jenks_labels
 
 # <codecell>
 
@@ -286,15 +250,15 @@ m.drawmapscale(coords[0] + 0.08, coords[1] + -0.01,
     zorder=5, ax=ax,)
 
 # ncolors+1 because we're using a "zero-th" color
-cbar = custom_colorbar(cmap, ncolors=len(labels)+1, labels=labels, shrink=0.5)
+cbar = custom_colorbar(cmap, ncolors=len(jenks_labels)+1, labels=jenks_labels, shrink=0.5)
 cbar.ax.tick_params(labelsize=16)
 
-fig.suptitle("Time Spent in Seattle Neighborhoods", fontdict={'size':24, 'fontweight':'bold'}, y=0.92)
-ax.set_title("Using location data collected from my Android phone via Google Takeout", fontsize=14, y=0.98)
+fig.suptitle("    Time Spent in Seattle Neighborhoods", fontdict={'size':24, 'fontweight':'bold'}, y=0.92)
+ax.set_title("  Using location data collected from my Android phone via Google Takeout", fontsize=14, y=0.98)
 ax.text(1.35, 0.04, "Collected from 2012-2014 on Android 4.2-4.4\nGeographic data provided by data.seattle.gov", 
         ha='right', color='#555555', style='italic', transform=ax.transAxes)
 ax.text(1.35, 0.01, "BeneathData.com", color='#555555', fontsize=16, ha='right', transform=ax.transAxes)
-plt.savefig('choropleth.png', dpi=100, frameon=False, bbox_inches='tight', pad_inches=0.5, facecolor='#F2F2F2')
+plt.savefig('chloropleth.png', dpi=300, frameon=False, transparent=False, bbox_inches='tight', pad_inches=0.5)
 
 # <headingcell level=2>
 
@@ -341,7 +305,7 @@ ax.set_title("Using location data collected from my Android phone via Google Tak
 ax.text(1.0, 0.03, "Collected from 2012-2014 on Android 4.2-4.4\nGeographic data provided by data.seattle.gov", 
         ha='right', color='#555555', style='italic', transform=ax.transAxes)
 ax.text(1.0, 0.01, "BeneathData.com", color='#555555', fontsize=16, ha='right', transform=ax.transAxes)
-plt.savefig('hexbin.png', dpi=150, frameon=False, bbox_inches='tight', pad_inches=0.5, facecolor='#DEDEDE')
+plt.savefig('hexbin.png', dpi=100, frameon=False, transparent=False, bbox_inches='tight', pad_inches=0.5)
 
 # <headingcell level=1>
 
@@ -397,7 +361,7 @@ for flight_group in adjacent_flight_groups:
                                                            flights.ix[idx].endlon)*6378.1   
     
 # Cool. We're done! Now remove the "flight" entries we don't need anymore.
-flights = flights.drop(_f.index).reset_index(drop=True)
+flights = flights.drop(f.index).reset_index(drop=True)
 
 # Finally, we can be confident that we've removed instances of flights broken up by
 # GPS data points during flight. We can now be more liberal in our constraints for what
@@ -407,17 +371,13 @@ flights = flights[flights.distance > 200].reset_index(drop=True)
 
 # <codecell>
 
-flights.distance.sum()
-
-# <codecell>
-
 fig = plt.figure(figsize=(18,12))
-# fly = flights[(flights.startlon < 0) & (flights.endlon < 0)]# Western Hemisphere Flights
-#fly = flights[(flights.startlon > 0) & (flights.endlon > 0)] # Eastern Hemisphere Flights
-fly = flights # All flights. Need to use Robin projection w/ center as -180 as 2 cross 180/-180 Lon
 
-xbuf = 0.2
-ybuf = 0.35
+#fly = flights[(flights.startlon < 0) & (flights.endlon < 0)]# Western Hemisphere Flights
+fly = flights[(flights.startlon > 0) & (flights.endlon > 0)] # Eastern Hemisphere Flights
+#fly = flights # All flights. Need to use Robin projection w/ center as -180 as 2 cross 180/-180 Lon
+
+buf = .3
 minlat = np.min([fly.endlat.min(), fly.startlat.min()])
 minlon = np.min([fly.endlon.min(), fly.startlon.min()])
 maxlat = np.max([fly.endlat.max(), fly.startlat.max()])
@@ -426,18 +386,17 @@ width = maxlon - minlon
 height = maxlat - minlat
 
 
-m = Basemap(llcrnrlon=minlon - width*xbuf,
-            llcrnrlat=minlat - height*ybuf,
-            urcrnrlon=maxlon + width*xbuf,
-            urcrnrlat=maxlat + height*ybuf,
-            projection= 'robin',#'merc',
+m = Basemap(llcrnrlon=minlon - width*buf,
+            llcrnrlat=minlat - height*buf*1.5,
+            urcrnrlon=maxlon + width*buf,
+            urcrnrlat=maxlat + height*buf,
+            projection='merc', #'robin',
             resolution='l',
-            lat_1=minlat, lat_2=maxlat,
+            #lat_1=minlat, lat_2=maxlat,
             lat_0=minlat + height/2,
-#             lon_0=minlon + width/2,
-            lon_0=-180,
-)
-m.drawmapboundary(fill_color='#EBF4FA')
+            lon_0=minlon + width/2,)
+            #lon_0=-180)
+
 m.drawcoastlines()
 m.drawstates()
 m.drawcountries()
@@ -446,20 +405,15 @@ m.fillcontinents()
 #m.drawparallels(np.arange(pts.latitude.min(),pts.latitude.max(),2.), labels=[1,1,1,1], fmt="%0.1f")
 #m.drawmeridians(np.arange(pts.longitude.min(), pts.longitude.max(),5.), labels=[1,1,1,1], fmt="%0.1f")
 
-for idx, f in fly.iterrows():
+for f in fly.iterrows():
+    f = f[1]
     m.drawgreatcircle(f.startlon, f.startlat, f.endlon, f.endlat, linewidth=3, alpha=0.4, color='b' )
     m.plot(*m(f.startlon, f.startlat), color='g', alpha=0.8, marker='o')
     m.plot(*m(f.endlon, f.endlat), color='r', alpha=0.5, marker='o' )
-    
-#fig.suptitle("Flights Taken, 2012-2014", fontdict={'size':24, 'fontweight':'bold'}, y=0.96)
-#plt.title("Using location data collected from my Android phone via Google Takeout", fontsize=14, y=1.01)
-fig.text(0.125, 0.18, "Data collected from 2012-2014 on Android 4.2-4.4\nPlotted using Python, Basemap", 
-        ha='left', color='#555555', style='italic')
-fig.text(0.125, 0.15, "BeneathData.com", color='#555555', fontsize=16, ha='left')
-plt.savefig('flights.png', dpi=100, frameon=False, transparent=False, bbox_inches='tight', pad_inches=0.2)
-
-# <codecell>
-
+    #pa = Point(m(f.startlon, f.startlat))
+    #pb = Point(m(f.endlon, f.endlat))
+    #plt.plot([pa.x, pb.x], [pa.y, pb.y], linewidth=4)
+plt.savefig('data/flightdata.png', dpi=300, frameon=False, transparent=True)
 
 # <headingcell level=1>
 
