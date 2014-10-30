@@ -3,30 +3,34 @@
 
 # <codecell>
 
-import pandas as pd
+def msort3(x):
+    result = []
+    if len(x) < 2:
+        return x
+    mid = int(len(x)/2)
+    y = msort3(x[:mid])
+    z = msort3(x[mid:])
+    i = 0
+    j = 0
+    import pdb;pdb.set_trace()
+    while i < len(y) and j < len(z):
+            if y[i] > z[j]:
+                result.append(z[j])
+                j += 1
+            else:
+                result.append(y[i])
+                i += 1
+    result += y[i:]
+    result += z[j:]
+    return result
 
 # <codecell>
 
-df = pd.DataFrame(np.random.rand(10, 10))
+x = [5,3,6,7,1,2,3,9,8,0]
 
 # <codecell>
 
-df.resample(0.2)
-
-# <codecell>
-
-index = pd.date_range('1/1/2001 00:00:00', '1/1/2001 00:00:10', freq='10L')
-s = pd.Series(np.random.randn(index.size), index=index)
-
-# <codecell>
-
-print len(s)
-ns = s.resample('2.5S')
-print len(ns)
-
-# <codecell>
-
-s.resample('5Min')
+msort3(x)c
 
 # <codecell>
 
