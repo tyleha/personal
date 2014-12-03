@@ -3,6 +3,29 @@
 
 # <codecell>
 
+def nthfib(n):
+    if n <=1: return n
+    p2 = 0
+    p1 = 1
+    for i in range(n):
+        fib = p2+p1
+        p2 = p1
+        p1 = fib
+    return p1
+
+nthfib(1)
+
+# <codecell>
+
+xx = np.cos(np.arange(-np.pi, np.pi, 2*np.pi/400))
+plt.plot(xx)
+
+# <codecell>
+
+np.savetxt("foo.csv", xx, delimiter=",")
+
+# <codecell>
+
 def msort3(x):
     result = []
     if len(x) < 2:
