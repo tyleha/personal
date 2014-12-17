@@ -6,21 +6,90 @@
 import praw
 import time 
 
+# <codecell>
+
+def make_logger(name):
+    """
+    Make a logging instance that logs to both stdout and a log file.
+    Min logging level is INFO for stdout, DEBUG for log file
+    :name: the name of the log file (full path)
+    """
+    import logging
+    fmt ='%(asctime)s -- %(levelname)-8s%(message)s'
+    datefmt = '%m/%d/%Y %H:%M:%S'
+
+    # create logger with 'spam_application'
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
+    # create file handler which logs even debug messages
+    fh = logging.FileHandler(name)
+    fh.setLevel(logging.DEBUG)
+    # create console handler with a higher log level
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.INFO)
+    # create formatter and add it to the handlers
+    formatter = logging.Formatter(fmt=fmt, datefmt=datefmt)
+    fh.setFormatter(formatter)
+    ch.setFormatter(formatter)
+    # add the handlers to the logger
+    logger.addHandler(fh)
+    logger.addHandler(ch)
+    return logger
 
 # <codecell>
 
-lookbackTime = time.mktime(time.gmtime()) - 60*60*48# should be sys.argv[1] at some point
-r = praw.Reddit(user_agent='some_kind_of_bot')
+def have_already_commented(comment):
+    for subcomment in comment.replies:
+        if subcomment.author.name == bot_name:
+            return True
+    return False
 
-subredditName = 'python'
+#### Constants and setup ####
+log = make_logger("jensonbot_log")
+bot_name = "Jenson_Botton"
+with open("jensonbot_keys", 'r') as keys:
+    bot_password = keys.read().strip()
+r = praw.Reddit(user_agent='Jenson_correction_and_education_bot')
+r.login(bot_name, bot_password)
+log.info("Successfully logged in")
+post_text = """[Jensen](http://i.imgur.com/wGcGuLa.jpg)
+
+[Jenson](http://i.imgur.com/uRnLTPt.jpg)
+
+\"Teach the Controversy\""""
+
+subredditName = 'test'
 sub = r.get_subreddit(subredditName)
+lookbackTime = time.mktime(time.gmtime()) - 60*60*24
 
-posts = [p for p in sub.get_new(limit=25)]
-while posts[-1].created_utc > lookbackTime:
-    posts += [p for p in sub.get_new(params={"after":posts[-1].name})]
-
-for p in posts:
-    print p.score, p.title
+#### The actual bot code ####
+try:
+    posts = [p for p in sub.get_new(limit=10)]
+    # Find all posts since the "lookbackTime" (in seconds)
+    while posts[-1].created_utc > lookbackTime:
+        posts += [p for p in sub.get_new(params={"after":posts[-1].name})]
+        
+    log.info("Found %s posts in the last 24 hours"%len(posts))
+    for post in posts:
+        submission = r.get_submission(submission_id=post.id)
+        flat_comments = praw.helpers.flatten_tree(submission.comments)
+        for comment in flat_comments:
+            if " jensen " in comment.body.lower():
+                # Check to see if we've already replied to this comment!
+                if not have_already_commented(comment):
+                    log.info("Found new comment mentioning Jensen - comment id=%s"%comment.id)
+                    try:
+                        comment.reply(post_text)
+                        log.info("Successfully commented!")
+                    except Exception as e:
+                        log.error("Couldn't post a comment for some reason...")
+                        log.exception(e)
+                else: 
+                    log.info("already replied to this comment, moving on")
+                    continue
+except Exception as e:
+    log.error("Ran into an unknown error")
+    log.exception(e)
 
 # <codecell>
 
