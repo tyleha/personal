@@ -47,8 +47,7 @@ def have_already_commented(comment):
 #### Constants and setup ####
 log = make_logger("jensonbot_log")
 bot_name = "Jenson_Botton"
-with open("jensonbot_keys", 'r') as keys:
-    bot_password = keys.read().strip()
+bot_password = ""
 r = praw.Reddit(user_agent='Jenson_correction_and_education_bot')
 r.login(bot_name, bot_password)
 log.info("Successfully logged in")
@@ -58,9 +57,9 @@ post_text = """[Jensen](http://i.imgur.com/wGcGuLa.jpg)
 
 \"Teach the Controversy\""""
 
-subredditName = 'test'
+subredditName = 'formula1'
 sub = r.get_subreddit(subredditName)
-lookbackTime = time.mktime(time.gmtime()) - 60*60*24
+lookbackTime = time.mktime(time.gmtime()) - 60*60*24 #24 hours
 
 #### The actual bot code ####
 try:
@@ -75,8 +74,8 @@ try:
         flat_comments = praw.helpers.flatten_tree(submission.comments)
         for comment in flat_comments:
             if " jensen " in comment.body.lower():
-                # Check to see if we've already replied to this comment!
-                if not have_already_commented(comment):
+                # Check to see if we've already replied to this comment, or if it's ours!
+                if not have_already_commented(comment) and comment.author.name != bot_name:
                     log.info("Found new comment mentioning Jensen - comment id=%s"%comment.id)
                     try:
                         comment.reply(post_text)
@@ -85,12 +84,9 @@ try:
                         log.error("Couldn't post a comment for some reason...")
                         log.exception(e)
                 else: 
-                    log.info("already replied to this comment, moving on")
+                    log.info("already replied to this comment or is ours, moving on")
                     continue
 except Exception as e:
     log.error("Ran into an unknown error")
     log.exception(e)
-
-# <codecell>
-
 
