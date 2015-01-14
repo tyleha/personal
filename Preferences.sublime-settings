@@ -28,3 +28,5 @@
 	"scroll_speed": 0,
 	"word_wrap": true,
 }
+// https://github.com/jisaacks/GitGutter
+// https://github.com/facelessuser/BracketHighlighter
