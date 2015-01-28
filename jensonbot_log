@@ -1,0 +1,190 @@
+12/22/2014 11:11:09 -- INFO    Successfully logged in
+12/22/2014 11:11:15 -- INFO    Found 60 posts in the last 24 hours
+12/22/2014 11:12:00 -- ERROR   Ran into an unknown error
+12/22/2014 11:12:00 -- ERROR   '<class 'praw.objects.MoreComments'>' has no attribute 'body'
+Traceback (most recent call last):
+  File "scratch.py", line 78, in <module>
+    if " jensen " in comment.body.lower():
+  File "/usr/local/lib/python2.7/dist-packages/praw/objects.py", line 83, in __getattr__
+    attr))
+AttributeError: '<class 'praw.objects.MoreComments'>' has no attribute 'body'
+12/22/2014 11:13:16 -- INFO    Successfully logged in
+12/22/2014 11:13:22 -- INFO    Found 60 posts in the last 24 hours
+12/22/2014 11:14:10 -- ERROR   Ran into an unknown error
+12/22/2014 11:14:10 -- ERROR   '<class 'praw.objects.MoreComments'>' has no attribute 'body'
+Traceback (most recent call last):
+  File "scratch.py", line 78, in <module>
+    if string_to_match in comment.body.lower():
+  File "/usr/local/lib/python2.7/dist-packages/praw/objects.py", line 83, in __getattr__
+    attr))
+AttributeError: '<class 'praw.objects.MoreComments'>' has no attribute 'body'
+12/22/2014 11:15:04 -- INFO    Successfully logged in
+12/22/2014 11:15:10 -- INFO    Found 60 posts in the last 24 hours
+12/22/2014 11:15:54 -- ERROR   Ran into an unknown error
+12/22/2014 11:22:12 -- INFO    Successfully logged in
+12/22/2014 11:22:18 -- INFO    Found 60 posts in the last 24 hours
+12/22/2014 11:25:37 -- INFO    Successfully logged in
+12/22/2014 11:26:10 -- INFO    Successfully logged in
+12/22/2014 11:26:16 -- INFO    Found 60 posts in the last 24 hours
+12/22/2014 11:26:16 -- INFO    Looking at post [OT] Kubica submits entry for Rallye Monte Carlo
+12/22/2014 11:26:18 -- INFO    Looking at post ESPN F1 - Top Ten Drivers of the Year (Part 1, 10-6)
+12/22/2014 11:26:20 -- INFO    Looking at post JB in SecretSantander
+12/22/2014 11:26:22 -- INFO    Looking at post F1 2014 ReWind: 3 Fernando Alonso
+12/22/2014 11:26:24 -- INFO    Looking at post Lotus might not be the best team, but they definitely have the best PR/media team.
+12/22/2014 11:26:26 -- INFO    Looking at post Videas F1 2014: GP ABU DABI
+12/22/2014 11:26:28 -- INFO    Looking at post Hello /r/formula1, I thought you guys might appreciate this quartet card game from 1971 that I own (more pics in comments!)
+12/22/2014 11:26:30 -- INFO    Looking at post Alonso was 'tired of Ferrari promises' - Briatore
+12/22/2014 11:26:32 -- INFO    Looking at post Would MotoGP Claiming Rules save the lower teams?
+12/22/2014 11:26:34 -- INFO    Looking at post Williams online shop problems.
+12/22/2014 11:26:36 -- INFO    Looking at post Does Sky or BBC offer full f1 races from the onboard view?
+12/22/2014 11:26:38 -- INFO    Looking at post Japanese Grand Prix 2005 where to watch?
+12/22/2014 11:26:40 -- INFO    Looking at post Has your opinion of any driver(s) changed this season?
+12/22/2014 11:26:42 -- INFO    Looking at post My wife was photobombed by Tamara Ecclestone yesterday
+12/22/2014 11:26:44 -- INFO    Looking at post My Formula 1 race videos collection
+12/22/2014 11:26:46 -- INFO    Looking at post Villeneuve still critical of Verstappen signing: "Should I tell you the truth? I think Max is an insult. Does Red Bull realise it is putting a child in Formula 1?"
+12/22/2014 11:26:48 -- INFO    Looking at post Ecclestone keen to revive South African GP
+12/22/2014 11:26:50 -- INFO    Looking at post Buemi signs new test deal with Red Bull
+12/22/2014 11:26:52 -- INFO    Looking at post ESPN's top 5 drivers of the season.
+12/22/2014 11:26:54 -- INFO    Looking at post Remember when BAR were planning on running 2 different liveries?
+12/22/2014 11:26:56 -- INFO    Looking at post Ron Dennis: "The challenge for our partner Honda is hitting dates and reliability, the performance is pretty impressive but of course I can't share that with you."
+12/22/2014 11:26:58 -- INFO    This comment is actually a MoreComments?
+12/22/2014 11:26:58 -- INFO    Looking at post Alonso and Massa have it out with handbags at 10 paces in 2007.
+12/22/2014 11:27:00 -- INFO    Looking at post Sebastian Vettel's Red Bull Career in Five Races
+12/22/2014 11:27:02 -- INFO    Looking at post Eric Boullier says chief engineer Prodromou is key McLaren signing
+12/22/2014 11:27:04 -- INFO    Looking at post Taki Inoue posted this on Facebook...
+12/22/2014 11:27:06 -- INFO    Looking at post SkyF1 2014 F1 Season Awards
+12/22/2014 11:27:08 -- INFO    Looking at post "Almost finished: the new factory of ScuderiaFerrari in Maranello."
+12/22/2014 11:27:10 -- INFO    Looking at post Which 'top' F1 drivers had ordinary junior careers?
+12/22/2014 11:27:12 -- INFO    Looking at post History of Formula 1 Early 2000s Documentary focusing on Williams engineering featuring some fresh faced favourites &lt;long watch 45mins&gt;
+12/22/2014 11:27:14 -- INFO    Looking at post [OT] Stay safe Lewis.
+12/22/2014 11:27:16 -- INFO    Looking at post Yes, that is one of the things he is known for
+12/22/2014 11:29:00 -- INFO    Successfully logged in
+12/22/2014 11:29:07 -- INFO    Found 60 posts in the last 24 hours
+12/22/2014 11:29:07 -- INFO    Looking at post [OT] Kubica submits entry for Rallye Monte Carlo
+12/22/2014 11:29:08 -- INFO    Looking at post ESPN F1 - Top Ten Drivers of the Year (Part 1, 10-6)
+12/22/2014 11:29:10 -- INFO    Looking at post JB in SecretSantander
+12/22/2014 11:29:12 -- INFO    Looking at post F1 2014 ReWind: 3 Fernando Alonso
+12/22/2014 11:29:14 -- INFO    Looking at post Lotus might not be the best team, but they definitely have the best PR/media team.
+12/22/2014 11:29:16 -- INFO    Looking at post Videas F1 2014: GP ABU DABI
+12/22/2014 11:29:18 -- INFO    Looking at post Hello /r/formula1, I thought you guys might appreciate this quartet card game from 1971 that I own (more pics in comments!)
+12/22/2014 11:29:20 -- INFO    Looking at post Alonso was 'tired of Ferrari promises' - Briatore
+12/22/2014 11:29:22 -- INFO    Looking at post Would MotoGP Claiming Rules save the lower teams?
+12/22/2014 11:29:24 -- INFO    Looking at post Williams online shop problems.
+12/22/2014 11:29:26 -- INFO    Looking at post Does Sky or BBC offer full f1 races from the onboard view?
+12/22/2014 11:29:28 -- INFO    Looking at post Japanese Grand Prix 2005 where to watch?
+12/22/2014 11:29:30 -- INFO    Looking at post Has your opinion of any driver(s) changed this season?
+12/22/2014 11:29:32 -- INFO    Looking at post My wife was photobombed by Tamara Ecclestone yesterday
+12/22/2014 11:29:34 -- INFO    Looking at post My Formula 1 race videos collection
+12/22/2014 11:29:36 -- INFO    Looking at post Villeneuve still critical of Verstappen signing: "Should I tell you the truth? I think Max is an insult. Does Red Bull realise it is putting a child in Formula 1?"
+12/22/2014 11:29:39 -- INFO    Looking at post Ecclestone keen to revive South African GP
+12/22/2014 11:29:40 -- INFO    Looking at post Buemi signs new test deal with Red Bull
+12/22/2014 11:29:42 -- INFO    Looking at post ESPN's top 5 drivers of the season.
+12/22/2014 11:29:44 -- INFO    Looking at post Remember when BAR were planning on running 2 different liveries?
+12/22/2014 11:29:46 -- INFO    Looking at post Ron Dennis: "The challenge for our partner Honda is hitting dates and reliability, the performance is pretty impressive but of course I can't share that with you."
+12/22/2014 11:29:49 -- DEBUG   This comment is actually a MoreComments?
+12/22/2014 11:29:49 -- INFO    Looking at post Alonso and Massa have it out with handbags at 10 paces in 2007.
+12/22/2014 11:29:50 -- INFO    Looking at post Sebastian Vettel's Red Bull Career in Five Races
+12/22/2014 11:29:52 -- INFO    Looking at post Eric Boullier says chief engineer Prodromou is key McLaren signing
+12/22/2014 11:29:54 -- INFO    Looking at post Taki Inoue posted this on Facebook...
+12/22/2014 11:29:56 -- INFO    Found new comment mentioning Jensen - comment id=cn2djw8
+12/22/2014 11:29:58 -- INFO    Successfully commented!
+12/22/2014 11:29:58 -- INFO    Looking at post SkyF1 2014 F1 Season Awards
+12/22/2014 11:30:00 -- INFO    Looking at post "Almost finished: the new factory of ScuderiaFerrari in Maranello."
+12/22/2014 11:30:03 -- INFO    Looking at post Which 'top' F1 drivers had ordinary junior careers?
+12/22/2014 11:30:05 -- INFO    Looking at post History of Formula 1 Early 2000s Documentary focusing on Williams engineering featuring some fresh faced favourites &lt;long watch 45mins&gt;
+12/22/2014 11:30:06 -- INFO    Looking at post [OT] Stay safe Lewis.
+12/22/2014 11:30:09 -- INFO    Looking at post Yes, that is one of the things he is known for
+12/22/2014 11:30:10 -- INFO    Looking at post MONDAY TRASH TALK THREAD - 12/22/2014
+12/22/2014 11:30:13 -- DEBUG   This comment is actually a MoreComments?
+12/22/2014 11:30:13 -- INFO    Looking at post What are the best/most exciting races of the last 10 years for me to watch?
+12/22/2014 11:30:14 -- INFO    Looking at post Turbo powered F1 cars from the 80s heard from the grandstands today
+12/22/2014 11:30:16 -- INFO    Looking at post Christian Horner says Ferrari lure powerful for Sebastian Vettel
+12/22/2014 11:30:18 -- INFO    Looking at post How do you play the F1 game? What's your driving style? Do you use driving aids? Any advice on how I can get better?
+12/22/2014 11:30:20 -- INFO    Looking at post RBR RB11 2015 concept.
+12/22/2014 11:30:23 -- INFO    Looking at post According to wikipedia Lewis Hamilton's nickname is Jimmy Savile
+12/22/2014 11:30:24 -- INFO    Looking at post Infographic showing the difference in the classification time between F1 2013, F1 2014 and GP2 2014
+12/22/2014 11:30:27 -- INFO    Looking at post Most successful drivers of the past 22 years from Autosport's "Top 50 of the year"
+12/22/2014 11:30:29 -- INFO    Looking at post 2008 Spanish Grand Prix - Kovalainen Crash
+12/22/2014 11:30:30 -- INFO    Looking at post 2014 Season Highlights
+12/22/2014 11:30:32 -- INFO    Looking at post I acted like a 12 year old girl at a Justin bieber concert to get this autograph
+12/22/2014 11:30:35 -- INFO    Looking at post Very thankful for my secret santa from reddit
+12/22/2014 11:30:36 -- INFO    Looking at post Formula 1 crashes of 2005
+12/22/2014 11:30:38 -- INFO    Looking at post My Cost Proposal: Luxury Tax
+12/22/2014 11:30:40 -- INFO    Looking at post A best &amp; worst races season
+12/22/2014 11:30:42 -- INFO    Looking at post Why are most of videos from tests/events done with full wets on?
+12/22/2014 11:30:44 -- INFO    Looking at post Lewis Hamilton: R/C Car Champion
+12/22/2014 11:30:46 -- INFO    Looking at post Stolen from /r/NASCAR: Piss off /r/Formula1 in one sentence!
+12/22/2014 11:30:49 -- INFO    Looking at post What happens when you get run over by a Formula 1 car
+12/22/2014 11:30:50 -- INFO    Looking at post [Torrent] The long awaited update. 1978-2014 is now live. Includes Canada 2011 in its entirety!!!
+12/22/2014 11:30:53 -- INFO    Looking at post Hulkenberg vs. Grosjean. Who deserves a top seat and why?
+12/22/2014 11:30:55 -- INFO    Looking at post My secret santa on reddit gifts smashed it
+12/22/2014 11:30:56 -- INFO    Looking at post Michael Schumacher at Monza 2006. Very emotional day.
+12/22/2014 11:30:59 -- INFO    Looking at post Fernando Alonso needed new Formula 1 team, reckons former team-mate Felipe Massa - F1 news
+12/22/2014 11:31:00 -- INFO    Looking at post What new technology has Bernie liked?
+12/22/2014 11:31:02 -- INFO    Looking at post Anyone have a torrent for the 2014 season review?
+12/22/2014 11:31:05 -- INFO    Looking at post [OT] Watch full International GT Open series races on YouTube (legal and free)!
+12/22/2014 11:31:06 -- INFO    Looking at post Radio clip reveals Lewis Hamilton's suspicions in Monaco
+12/22/2014 11:31:09 -- DEBUG   This comment is actually a MoreComments?
+12/22/2014 11:32:15 -- INFO    Successfully logged in
+12/22/2014 11:32:47 -- INFO    Successfully logged in
+12/22/2014 11:32:53 -- INFO    Found 60 posts in the last 24 hours
+12/22/2014 11:32:53 -- INFO    Looking at post [OT] Kubica submits entry for Rallye Monte Carlo
+12/22/2014 11:32:55 -- INFO    Looking at post ESPN F1 - Top Ten Drivers of the Year (Part 1, 10-6)
+12/22/2014 11:32:57 -- INFO    Looking at post JB in SecretSantander
+12/22/2014 11:32:59 -- INFO    Looking at post F1 2014 ReWind: 3 Fernando Alonso
+12/22/2014 11:33:01 -- INFO    Looking at post Lotus might not be the best team, but they definitely have the best PR/media team.
+12/22/2014 11:33:03 -- INFO    Looking at post Videas F1 2014: GP ABU DABI
+12/22/2014 11:33:05 -- INFO    Looking at post Hello /r/formula1, I thought you guys might appreciate this quartet card game from 1971 that I own (more pics in comments!)
+12/22/2014 11:33:07 -- INFO    Looking at post Alonso was 'tired of Ferrari promises' - Briatore
+12/22/2014 11:33:09 -- INFO    Looking at post Would MotoGP Claiming Rules save the lower teams?
+12/22/2014 11:33:11 -- INFO    Looking at post Williams online shop problems.
+12/22/2014 11:33:13 -- INFO    Looking at post Does Sky or BBC offer full f1 races from the onboard view?
+12/22/2014 11:33:15 -- INFO    Looking at post Japanese Grand Prix 2005 where to watch?
+12/22/2014 11:33:17 -- INFO    Looking at post Has your opinion of any driver(s) changed this season?
+12/22/2014 11:33:19 -- INFO    Looking at post My wife was photobombed by Tamara Ecclestone yesterday
+12/22/2014 11:33:21 -- INFO    Looking at post My Formula 1 race videos collection
+12/22/2014 11:33:23 -- INFO    Looking at post Villeneuve still critical of Verstappen signing: "Should I tell you the truth? I think Max is an insult. Does Red Bull realise it is putting a child in Formula 1?"
+12/22/2014 11:33:25 -- INFO    Looking at post Ecclestone keen to revive South African GP
+12/22/2014 11:33:27 -- INFO    Looking at post Buemi signs new test deal with Red Bull
+12/22/2014 11:33:29 -- INFO    Looking at post ESPN's top 5 drivers of the season.
+12/22/2014 11:33:31 -- INFO    Looking at post Remember when BAR were planning on running 2 different liveries?
+12/22/2014 11:33:33 -- INFO    Looking at post Ron Dennis: "The challenge for our partner Honda is hitting dates and reliability, the performance is pretty impressive but of course I can't share that with you."
+12/22/2014 11:33:35 -- DEBUG   This comment is actually a MoreComments?
+12/22/2014 11:33:35 -- INFO    Looking at post Alonso and Massa have it out with handbags at 10 paces in 2007.
+12/22/2014 11:33:37 -- INFO    Looking at post Sebastian Vettel's Red Bull Career in Five Races
+12/22/2014 11:33:39 -- INFO    Looking at post Eric Boullier says chief engineer Prodromou is key McLaren signing
+12/22/2014 11:33:41 -- INFO    Looking at post Taki Inoue posted this on Facebook...
+12/22/2014 11:33:43 -- INFO    --------------------------
+already replied to this comment or is ours, moving on
+-------------------------
+12/22/2014 11:33:43 -- INFO    Looking at post SkyF1 2014 F1 Season Awards
+12/22/2014 11:33:45 -- INFO    Looking at post "Almost finished: the new factory of ScuderiaFerrari in Maranello."
+12/22/2014 11:33:47 -- INFO    Looking at post Which 'top' F1 drivers had ordinary junior careers?
+12/22/2014 11:33:49 -- INFO    Looking at post History of Formula 1 Early 2000s Documentary focusing on Williams engineering featuring some fresh faced favourites &lt;long watch 45mins&gt;
+12/22/2014 11:33:51 -- INFO    Looking at post [OT] Stay safe Lewis.
+12/22/2014 11:33:53 -- INFO    Looking at post Yes, that is one of the things he is known for
+12/22/2014 11:33:55 -- INFO    Looking at post MONDAY TRASH TALK THREAD - 12/22/2014
+12/22/2014 11:33:57 -- DEBUG   This comment is actually a MoreComments?
+12/22/2014 11:33:57 -- INFO    Looking at post What are the best/most exciting races of the last 10 years for me to watch?
+12/22/2014 11:33:59 -- INFO    Looking at post Turbo powered F1 cars from the 80s heard from the grandstands today
+12/22/2014 11:34:01 -- INFO    Looking at post Christian Horner says Ferrari lure powerful for Sebastian Vettel
+12/22/2014 11:34:03 -- INFO    Looking at post How do you play the F1 game? What's your driving style? Do you use driving aids? Any advice on how I can get better?
+12/22/2014 11:34:05 -- INFO    Looking at post RBR RB11 2015 concept.
+12/22/2014 11:34:07 -- INFO    Looking at post According to wikipedia Lewis Hamilton's nickname is Jimmy Savile
+12/22/2014 11:34:10 -- INFO    Looking at post Infographic showing the difference in the classification time between F1 2013, F1 2014 and GP2 2014
+12/22/2014 11:34:12 -- INFO    Looking at post Most successful drivers of the past 22 years from Autosport's "Top 50 of the year"
+12/22/2014 11:34:13 -- INFO    Looking at post 2008 Spanish Grand Prix - Kovalainen Crash
+12/22/2014 11:34:15 -- INFO    Looking at post 2014 Season Highlights
+12/22/2014 11:34:17 -- INFO    Looking at post I acted like a 12 year old girl at a Justin bieber concert to get this autograph
+12/22/2014 11:34:19 -- INFO    Looking at post Very thankful for my secret santa from reddit
+12/22/2014 11:34:21 -- INFO    Looking at post Formula 1 crashes of 2005
+12/22/2014 11:34:23 -- INFO    Looking at post My Cost Proposal: Luxury Tax
+12/22/2014 11:34:25 -- INFO    Looking at post A best &amp; worst races season
+12/22/2014 11:34:27 -- INFO    Looking at post Why are most of videos from tests/events done with full wets on?
+12/22/2014 11:34:29 -- INFO    Looking at post Lewis Hamilton: R/C Car Champion
+12/22/2014 11:34:32 -- INFO    Looking at post Stolen from /r/NASCAR: Piss off /r/Formula1 in one sentence!
+12/22/2014 11:34:34 -- INFO    Looking at post What happens when you get run over by a Formula 1 car
+12/22/2014 11:34:35 -- INFO    Looking at post [Torrent] The long awaited update. 1978-2014 is now live. Includes Canada 2011 in its entirety!!!
+12/22/2014 11:34:39 -- INFO    Looking at post Hulkenberg vs. Grosjean. Who deserves a top seat and why?
+12/22/2014 11:34:39 -- INFO    Looking at post My secret santa on reddit gifts smashed it
+12/22/2014 11:34:41 -- INFO    Looking at post Michael Schumacher at Monza 2006. Very emotional day.

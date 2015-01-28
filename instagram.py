@@ -5,7 +5,7 @@
 
 import instagram as ig
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import json 
 from IPython.core.display import HTML
 import re
@@ -125,7 +125,7 @@ next_url=None
 # <codecell>
 
 
-results, next_url= search_advanced(api, tag_primary='twins', caption=['cast'], count=30, max_iters=500, next=next_url)
+results, next_url= search_advanced(api, tag_primary='twins', caption=['preg'], count=50, max_iters=500, next=next_url)
 
 # <codecell>
 
@@ -134,6 +134,7 @@ for media in results:
     html += html_small%media.images['standard_resolution'].url
     try:
         html += "<li>Caption: %s</li>"%media.caption.text
+        html += "<li>Date: %s</li>"%media.created_time
         html += '''<li>Media: <a href="%s">Media</a></li>'''%media.link
         html += '''<a href="http://www.iconosquare.com/%s">%s</a></br>'''%(media.user.username, media.user.username)
     except:
