@@ -29,13 +29,3 @@
 	"trim_trailing_white_space_on_save": true,
 	"word_wrap": true
 }
-
-// https://github.com/jisaacks/GitGutter
-// https://github.com/facelessuser/BracketHighlighter
-// Docblockr
-// Babel
-// JsFormat
-// Side Bar
-// Tag
-// SublimeLinter
-// Alignment
