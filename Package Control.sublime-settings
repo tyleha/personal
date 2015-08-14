@@ -1,0 +1,27 @@
+{
+	"in_process_packages":
+	[
+	],
+	"installed_packages":
+	[
+		"Alignment",
+		"All Autocomplete",
+		"Babel",
+		"BracketHighlighter",
+		"DocBlockr",
+		"Dotfiles Syntax Highlighting",
+		"GitGutter",
+		"Handlebars",
+		"JavaScript Snippets",
+		"JsFormat",
+		"Meteor Snippets",
+		"Package Control",
+		"SCSS",
+		"SideBarEnhancements",
+		"SublimeLinter",
+		"SublimeLinter-annotations",
+		"SublimeLinter-jshint",
+		"SublimeLinter-json",
+		"Tag"
+	]
+}
