@@ -3,30 +3,32 @@
 	{
 		"single_line": false
 	},
+	"bold_folder_labels": true,
+	"caret_style": "wide",
 	"color_scheme": "Packages/User/SublimeLinter/Monokai (SL).tmTheme",
 	"command": "reindent",
-	"folders":
+	"ensure_newline_at_eof_on_save": true,
+	"folder_exclude_patterns":
 	[
-		{
-			"folder_exclude_patterns":
-			[
-				".meteor/"
-			]
-		}
+		".meteor",
+		".git"
 	],
 	"font_size": 10,
+	"highlight_line": true,
 	"ignored_packages":
 	[
 		"Vintage"
 	],
-	"keys":
+	"rulers":
 	[
-		"ctrl+shift+r"
+		100
 	],
+	"scroll_speed": 0,
 	"tab_size": 2,
 	"translate_tabs_to_spaces": true,
-	"scroll_speed": 0,
-	"word_wrap": true,
+	"trim_trailing_white_space_on_save": true,
+	"word_wrap": true
 }
+
 // https://github.com/jisaacks/GitGutter
 // https://github.com/facelessuser/BracketHighlighter
