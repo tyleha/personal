@@ -43,31 +43,3 @@ class GmailAccount(object):
 from fetch query, parse into a dict-like email object, return list of emails.'''
         uids = self.search(search_query, folder, readonly)
         return self.fetch_and_parse(uids, fetch_query)
-
-
-
-def get_all_recips(parsed):
-    if parsed['To'] and parsed['cc']:
-        return parsed['To']+', '+parsed['cc']
-    elif parsed['To']:
-        return parsed['To']
-    elif parsed['cc']:
-        return parsed['cc']
-    else: return None
-
-def grab_email(string):
-    '''assumes format 'First Last <some@thing.com>' '''
-    return string.split('<')[-1][:-1]
-
-def parse_from(email_dict, metadata):
-    address = metadata.get('From').split('<')[-1][:-1]
-    if address == None: return email_dict
-    email_dict.setdefault(address, []).append(metadata)
-
-def parse_to(email_dict, metadata):
-    addressees = get_all_recips(metadata)
-    if addressees == None: return email_dict
-    #for each recipient in either the to or cc field:
-    for to in addressees.split(','):
-        email_dict.setdefault(grab_email(to), []).append(metadata)
-    return email_dict
